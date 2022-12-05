@@ -1,0 +1,33 @@
+{
+	"windowTitle":"NQADE",
+	"MSAACount":8,
+	"startOnScreen":1,
+	"screenWidth":0,
+	"screenHeight":0,
+	"windowOffset":{
+		"x":300,
+		"y":200
+	},
+	"linearFilterDisplayTex":true,
+	"OpenGLVersionMajor":4,
+	"OpenGLVersionMinor":3,
+	"reportPlatformInfo":true,
+	"enableDepthTesting":false,
+	"SDL_WINDOW_FULLSCREEN":false,
+	"SDL_WINDOW_FULLSCREEN_DESKTOP":false,
+	"SDL_WINDOW_BORDERLESS":false,
+	"SDL_WINDOW_RESIZABLE":true,
+	"SDL_WINDOW_INPUT_GRABBED":false,
+	"clearColor":{
+		"r":0.618,
+		"g":0.618,
+		"b":0.618,
+		"a":1.0
+	},
+	"vSyncEnable":true,
+	"colorGrade":{
+		"tonemapMode":6,
+		"gamma":1.1,
+		"colorTemp":6500.0
+	}
+}

@@ -1,0 +1,4 @@
+*.o
+build
+exe
+imgui.ini
