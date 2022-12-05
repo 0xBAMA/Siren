@@ -1,6 +1,6 @@
 # Built on [NQADE](https://github.com/0xBAMA/not-quite-a-demo-engine)
 
-![ SDF Pathtracing ]( SirenExample.png )
+[![ SDF Pathtracing ]( SirenExample.png )](https://github.com/0xBAMA/Siren_preupdate/blob/master/SirenExample.png)
 
 ## Setup
 - Requires `libsdl2-dev` on Ubuntu.
