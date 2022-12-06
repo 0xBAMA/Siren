@@ -21,32 +21,35 @@ private:
 	// text renderer framework
 	layerManager textRenderer;
 
-	// keyboard input management
-	// inputHandler keyboard;
+	// pathtracer config
+	hostParameters host;
+	coreParameters core;
+	lensParameters lens;
+	sceneParameters scene;
+	postParameters post;
 
-	// OpenGL data
+	// OpenGL data handles
+		// render
+	GLuint colorAccumulatorTexture;
+	GLuint normalAccumulatorTexture;
 	GLuint blueNoiseTexture;
-	GLuint accumulatorTexture;
+	GLuint pathtraceShader;
+	GLuint postprocessShader;
+		// present
 	GLuint displayTexture;
 	GLuint displayShader;
 	GLuint displayVAO;
 	GLuint displayVBO;
-	GLuint dummyDrawShader;
-	GLuint tonemapShader;
 
-	// SPONZA STUFF
-	GLuint sponzaShader;
-	// packed color + normal array texture
-	GLuint texArray;
-	// how many triangles
-	uint32_t sponzaNumTriangles = 0;
-	// offsetting the model's location
-	vec3 offset;
-
-	// tonemapping parameters + adjustment
-	colorGradeParameters tonemap;
-	void TonemapControlsWindow ();
-	void SendTonemappingParameters ();
+	// // OpenGL data
+	// GLuint blueNoiseTexture;
+	// GLuint accumulatorTexture;
+	// GLuint displayTexture;
+	// GLuint displayShader;
+	// GLuint displayVAO;
+	// GLuint displayVBO;
+	// GLuint dummyDrawShader;
+	// GLuint tonemapShader;
 
 	// initialization
 	void Init ();
@@ -54,7 +57,6 @@ private:
 	void LoadConfig ();
 	void CreateWindowAndContext ();
 	void DisplaySetup ();
-	void SetupVertexData ();
 	void SetupTextureData ();
 	void ShaderCompile ();
 	void ImguiSetup ();
@@ -63,14 +65,30 @@ private:
 	void BlitToScreen ();
 	void HandleEvents ();
 	void ClearColorAndDepth ();
-	void DrawAPIGeometry ();
-	void ComputePasses ();
+	// void ComputePasses ();
+	void UpdateNoiseOffsets ();
+	void PathtraceUniformUpdate ();
+	void PostprocessUniformUpdate ();
 	void ImguiPass ();
 	void ImguiFrameStart ();
 	void ImguiFrameEnd ();
 	void DrawTextEditor ();
-	void MenuLayout ( bool* open );
+	void ResetAccumulators ();
 	void QuitConf ( bool* open );
+	void HelpMarker( const char* message );
+
+	// rendering functions
+	void Render(); 				// swichable functionality
+	void Postprocess();			// tonemap, dither
+	glm::ivec2 GetTile();		// tile renderer offset
+
+	// screenshot functions
+	void BasicScreenShot();		// pull render target from texture memory
+
+	// large screenshot
+	// void offlineScreenShot();	// render out with prescribed sample count + resolution
+		// GLint maxTextureSizeCheck;
+		// glGetIntegerv( GL_MAX_TEXTURE_SIZE, &maxTextureSizeCheck );
 
 	// shutdown procedures
 	void ImguiQuit ();
@@ -80,5 +98,9 @@ private:
 	// program flags
 	bool quitConfirm = false;
 	bool pQuit = false;
+
+	// performance monitoring histories
+	std::deque<float> fpsHistory;
+	std::deque<float> tileHistory;
 };
 #endif

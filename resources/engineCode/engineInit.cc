@@ -38,9 +38,9 @@ void engine::LoadConfig () {
 	config.clearColor.a = j[ "clearColor" ][ "a" ];
 
 	// color grading stuff
-	tonemap.tonemapMode = j[ "colorGrade" ][ "tonemapMode" ];
-	tonemap.gamma = j[ "colorGrade" ][ "gamma" ];
-	tonemap.colorTemp = j[ "colorGrade" ][ "colorTemp" ];
+	post.tonemapMode = j[ "colorGrade" ][ "tonemapMode" ];
+	post.gamma = j[ "colorGrade" ][ "gamma" ];
+	post.colorTemp = j[ "colorGrade" ][ "colorTemp" ];
 
 	cout << T_GREEN << "done." << RESET << newline;
 }
@@ -98,7 +98,7 @@ void engine::CreateWindowAndContext () {
 	if ( gl3wInit() != 0 ) { cout << "Failed to Initialize OpenGL Loader!" << newline; abort(); }
 
 	// basic OpenGL Config
-	glEnable( GL_DEPTH_TEST );
+	// glEnable( GL_DEPTH_TEST );
 	// glEnable( GL_LINE_SMOOTH );
 	// glPointSize( 3.0 );
 	glEnable( GL_BLEND );
@@ -121,13 +121,7 @@ void engine::DisplaySetup () {
 		cout << T_RED << "      GLSL Version Supported : " << T_CYAN << glslVersion << RESET << newline << newline;
 	}
 
-	SetupVertexData();
 	SetupTextureData();
-}
-
-void engine::SetupVertexData () {
-	cout << T_BLUE << "    Setting Up Vertex Data" << RESET << " .................... ";
-
 
 	// OpenGL core spec requires a VAO bound when calling glDrawArrays
 	glGenVertexArrays( 1, &displayVAO );
@@ -136,11 +130,6 @@ void engine::SetupVertexData () {
 	// corresponding VBO, unused
 	glGenBuffers( 1, &displayVBO );
 	glBindBuffer( GL_ARRAY_BUFFER, displayVBO );
-
-	// no op, by default...
-		// load models, setup vertex attributes, etc, here
-
-	cout << T_GREEN << "done." << RESET << newline;
 }
 
 void engine::SetupTextureData () {
@@ -148,11 +137,8 @@ void engine::SetupTextureData () {
 
 	// create the image textures
 	Image initial( config.width, config.height, false );
-	glGenTextures( 1, &accumulatorTexture );
-	glActiveTexture( GL_TEXTURE3 );
-	glBindTexture( GL_TEXTURE_2D, accumulatorTexture );
-	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, config.width, config.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &initial.data[ 0 ] );
 
+	// output texture, for display
 	glGenTextures( 1, &displayTexture );
 	glActiveTexture( GL_TEXTURE0 );
 	glBindTexture( GL_TEXTURE_2D, displayTexture );
@@ -162,10 +148,23 @@ void engine::SetupTextureData () {
 	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
 	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, config.width, config.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &initial.data[ 0 ] );
 
+	// pathtrace accumulators
+	glGenTextures( 1, &colorAccumulatorTexture );
+	glActiveTexture( GL_TEXTURE1 );
+	glBindTexture( GL_TEXTURE_2D, colorAccumulatorTexture );
+	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA32F, config.width, config.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &initial.data[ 0 ] );
+	glBindImageTexture( 1, colorAccumulatorTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F );
+
+	glGenTextures( 1, &normalAccumulatorTexture );
+	glActiveTexture( GL_TEXTURE2 );
+	glBindTexture( GL_TEXTURE_2D, normalAccumulatorTexture );
+	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA32F, config.width, config.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &initial.data[ 0 ] );
+	glBindImageTexture( 2, normalAccumulatorTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F );
+
 	// blue noise image on the GPU
 	Image blueNoiseImage{ "resources/noise/blueNoise.png", LODEPNG };
 	glGenTextures( 1, &blueNoiseTexture );
-	glActiveTexture( GL_TEXTURE4 );
+	glActiveTexture( GL_TEXTURE3 );
 	glBindTexture( GL_TEXTURE_2D, blueNoiseTexture );
 	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, blueNoiseImage.width, blueNoiseImage.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &blueNoiseImage.data[ 0 ] );
 
@@ -175,17 +174,15 @@ void engine::SetupTextureData () {
 void engine::ShaderCompile () {
 	cout << T_BLUE << "    Compiling Shaders" << RESET << " ......................... ";
 
+	// // initialize the text renderer - is this useful in this project? tbd
+	// textRenderer.Init( config.width, config.height, computeShader( "resources/fonts/fontRenderer/font.cs.glsl" ).shaderHandle );
+
+	// compute shaders
+	pathtraceShader = computeShader( "resources/engineCode/shaders/pathtrace.cs.glsl" ).shaderHandle;
+	postprocessShader = computeShader( "resources/engineCode/shaders/postprocess.cs.glsl" ).shaderHandle;
+
 	// create the shader for the triangles to cover the screen
 	displayShader = regularShader( "resources/engineCode/shaders/blit.vs.glsl", "resources/engineCode/shaders/blit.fs.glsl" ).shaderHandle;
-
-	// initialize the text renderer
-	textRenderer.Init( config.width, config.height, computeShader( "resources/fonts/fontRenderer/font.cs.glsl" ).shaderHandle );
-
-	// something to put data in the accumulator texture
-	dummyDrawShader = computeShader( "resources/engineCode/shaders/dummyDraw.cs.glsl" ).shaderHandle;
-
-	// tonemapping shader
-	tonemapShader = computeShader( "resources/engineCode/shaders/tonemap.cs.glsl" ).shaderHandle;
 
 	cout << T_GREEN << "done." << RESET << newline;
 }

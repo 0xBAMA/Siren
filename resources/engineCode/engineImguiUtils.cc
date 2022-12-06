@@ -25,7 +25,7 @@ void engine::QuitConf ( bool *open ) {
 	}
 }
 
-static void HelpMarker ( const char *desc ) {
+void engine::HelpMarker ( const char *desc ) {
 	ImGui::TextDisabled( "(?)" );
 	if ( ImGui::IsItemHovered() ) {
 		ImGui::BeginTooltip();
@@ -71,34 +71,34 @@ void engine::DrawTextEditor () {
 	ImGui::End();
 }
 
-void engine::TonemapControlsWindow () {
-	ImGui::SetNextWindowSize( { 425, 115 } );
-	ImGui::Begin( "Tonemapping Controls", NULL, 0 );
-	const char* tonemapModesList[] = {
-		"None (Linear)",
-		"ACES (Narkowicz 2015)",
-		"Unreal Engine 3",
-		"Unreal Engine 4",
-		"Uncharted 2",
-		"Gran Turismo",
-		"Modified Gran Turismo",
-		"Rienhard",
-		"Modified Rienhard",
-		"jt",
-		"robobo1221s",
-		"robo",
-		"reinhardRobo",
-		"jodieRobo",
-		"jodieRobo2",
-		"jodieReinhard",
-		"jodieReinhard2"
-	};
-	ImGui::Combo("Tonemapping Mode", &tonemap.tonemapMode, tonemapModesList, IM_ARRAYSIZE( tonemapModesList ) );
-	ImGui::SliderFloat( "Gamma", &tonemap.gamma, 0.0f, 3.0f );
-	ImGui::SliderFloat( "Color Temperature", &tonemap.colorTemp, 1000.0f, 40000.0f );
-
-	ImGui::End();
-}
+// void engine::TonemapControlsWindow () {
+// 	ImGui::SetNextWindowSize( { 425, 115 } );
+// 	ImGui::Begin( "Tonemapping Controls", NULL, 0 );
+// 	const char* tonemapModesList[] = {
+// 		"None (Linear)",
+// 		"ACES (Narkowicz 2015)",
+// 		"Unreal Engine 3",
+// 		"Unreal Engine 4",
+// 		"Uncharted 2",
+// 		"Gran Turismo",
+// 		"Modified Gran Turismo",
+// 		"Rienhard",
+// 		"Modified Rienhard",
+// 		"jt",
+// 		"robobo1221s",
+// 		"robo",
+// 		"reinhardRobo",
+// 		"jodieRobo",
+// 		"jodieRobo2",
+// 		"jodieReinhard",
+// 		"jodieReinhard2"
+// 	};
+// 	ImGui::Combo("Tonemapping Mode", &tonemap.tonemapMode, tonemapModesList, IM_ARRAYSIZE( tonemapModesList ) );
+// 	ImGui::SliderFloat( "Gamma", &tonemap.gamma, 0.0f, 3.0f );
+// 	ImGui::SliderFloat( "Color Temperature", &tonemap.colorTemp, 1000.0f, 40000.0f );
+//
+// 	ImGui::End();
+// }
 
 void engine::ImguiFrameStart () {
 	// Start the Dear ImGui frame
