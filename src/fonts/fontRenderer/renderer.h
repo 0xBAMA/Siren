@@ -265,7 +265,7 @@ public:
 		fontWriteShader = shader;
 
 		// generate the altas texture - only ever needed in the context of layerManager
-		Image fontAtlas( "resources/fonts/fontRenderer/whiteOnClear.png", LODEPNG );
+		Image fontAtlas( "src/fonts/fontRenderer/whiteOnClear.png", LODEPNG );
 		fontAtlas.FlipVertical(); // for some reason loading upside down
 
 		// font atlas GPU setup

@@ -1,12 +1,12 @@
-[submodule "resources/noise/FastNoise2"]
-	path = resources/noise/FastNoise2
+[submodule "src/noise/FastNoise2"]
+	path = src/noise/FastNoise2
 	url = https://github.com/Auburn/FastNoise2.git
-[submodule "resources/fonts/hoardOfBitfonts"]
-	path = resources/fonts/hoardOfBitfonts
+[submodule "src/fonts/hoardOfBitfonts"]
+	path = src/fonts/hoardOfBitfonts
 	url = https://github.com/0xBAMA/hoard-of-bitfonts.git
-[submodule "resources/tracy"]
-	path = resources/tracy
+[submodule "src/tracy"]
+	path = src/tracy
 	url = https://github.com/wolfpld/tracy.git
-[submodule "resources/ModelLoading/assimp"]
-	path = resources/ModelLoading/assimp
+[submodule "src/ModelLoading/assimp"]
+	path = src/ModelLoading/assimp
 	url = https://github.com/assimp/assimp.git

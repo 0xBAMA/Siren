@@ -10,7 +10,7 @@ void engine::LoadConfig () {
 	cout << T_BLUE << "    Configuring Application" << RESET << " ................... ";
 	json j;
 	// load the config json, populate config struct - this will probably have more data, eventually
-	ifstream i( "resources/engineCode/config.json" );
+	ifstream i( "src/engineCode/config.json" );
 	i >> j; i.close();
 	config.windowTitle = j[ "windowTitle" ];
 	config.width = j[ "screenWidth" ];
@@ -163,7 +163,7 @@ void engine::SetupTextureData () {
 	glBindImageTexture( 2, normalAccumulatorTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F );
 
 	// blue noise image on the GPU
-	Image blueNoiseImage{ "resources/noise/blueNoise.png", LODEPNG };
+	Image blueNoiseImage{ "src/noise/blueNoise.png", LODEPNG };
 	glGenTextures( 1, &blueNoiseTexture );
 	glActiveTexture( GL_TEXTURE3 );
 	glBindTexture( GL_TEXTURE_2D, blueNoiseTexture );
@@ -177,14 +177,14 @@ void engine::ShaderCompile () {
 	cout << T_BLUE << "    Compiling Shaders" << RESET << " ......................... ";
 
 	// // initialize the text renderer - is this useful in this project? tbd
-	// textRenderer.Init( config.width, config.height, computeShader( "resources/fonts/fontRenderer/font.cs.glsl" ).shaderHandle );
+	// textRenderer.Init( config.width, config.height, computeShader( "src/fonts/fontRenderer/font.cs.glsl" ).shaderHandle );
 
 	// compute shaders
-	pathtraceShader = computeShader( "resources/engineCode/shaders/pathtrace.cs.glsl" ).shaderHandle;
-	postprocessShader = computeShader( "resources/engineCode/shaders/postprocess.cs.glsl" ).shaderHandle;
+	pathtraceShader = computeShader( "src/engineCode/shaders/pathtrace.cs.glsl" ).shaderHandle;
+	postprocessShader = computeShader( "src/engineCode/shaders/postprocess.cs.glsl" ).shaderHandle;
 
 	// create the shader for the triangles to cover the screen
-	displayShader = regularShader( "resources/engineCode/shaders/blit.vs.glsl", "resources/engineCode/shaders/blit.fs.glsl" ).shaderHandle;
+	displayShader = regularShader( "src/engineCode/shaders/blit.vs.glsl", "src/engineCode/shaders/blit.fs.glsl" ).shaderHandle;
 
 	cout << T_GREEN << "done." << RESET << newline;
 }
@@ -212,7 +212,7 @@ void engine::ImguiSetup () {
 	SDL_GL_SwapWindow( window ); // show clear color
 
 	// setting custom font, if desired
-	// io.Fonts->AddFontFromFileTTF( "resources/fonts/star_trek/titles/TNG_Title.ttf", 16 );
+	// io.Fonts->AddFontFromFileTTF( "src/fonts/star_trek/titles/TNG_Title.ttf", 16 );
 
 	// prepare performance monitoring history deques
 	fpsHistory.resize( host.performanceHistory );

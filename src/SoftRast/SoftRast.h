@@ -84,7 +84,7 @@ public:
 	SoftRast( uint32_t x = 0, uint32_t y = 0 ) : width( x ), height( y ) {
 		Color = Image( x, y );
 		Depth = ImageF( x, y );
-		BlueNoise = Image( "resources/noise/blueNoise.png" ); // for sample jitter, write helper function to return some samples
+		BlueNoise = Image( "src/noise/blueNoise.png" ); // for sample jitter, write helper function to return some samples
 		// init std::random generator as member variable, for picking blue noise sample point - then sweep along x or y to get low discrepancy sequence
 	}
 

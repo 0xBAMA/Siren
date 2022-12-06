@@ -46,7 +46,7 @@ void engine::DrawTextEditor () {
 	auto cursorPosition = editor.GetCursorPosition();
 	editor.SetPalette( TextEditor::GetDarkPalette() );
 
-	static const char *fileToEdit = "resources/engineCode/shaders/pathtrace.cs.glsl";
+	static const char *fileToEdit = "src/engineCode/shaders/pathtrace.cs.glsl";
 	static bool loaded = false;
 	if ( !loaded ) {
 		std::ifstream t ( fileToEdit );
@@ -80,7 +80,7 @@ void engine::DrawTextEditor () {
 	ImGui::Text( " " );
 	ImGui::SameLine();
 	if ( ImGui::SmallButton( " Save Shader " ) ) { // overwrite the shader text file
-		std::ofstream file( "resources/engine_code/shaders/pathtrace.cs.glsl" );
+		std::ofstream file( "src/engine_code/shaders/pathtrace.cs.glsl" );
 		std::string savetext( editor.GetText() );
 		file << savetext;
 		file.close();
