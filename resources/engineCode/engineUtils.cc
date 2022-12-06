@@ -4,51 +4,14 @@ bool engine::MainLoop () {
 	ZoneScoped;
 
 	HandleEvents();					// handle keyboard / mouse events
-	ClearColorAndDepth();			// if I just disable depth testing, this can disappear
-	// ComputePasses();				// multistage update of displayTexture
+	Render();						// update display texture and show it
+	Postprocess();					// gamma, tonemapping, etc
 	BlitToScreen();					// fullscreen triangle copying the displayTexture to the screen
 	ImguiPass();					// do all the gui stuff
 	SDL_GL_SwapWindow( window );	// show what has just been drawn to the back buffer ( displayTexture + ImGui )
 	FrameMark;						// tells tracy that this is the end of a frame
 	return pQuit;					// break main loop when pQuit turns true
 }
-
-// void engine::ComputePasses () {
-// 	ZoneScoped;
-//
-// // dummy draw
-// 	// set up environment ( 0:blue noise, 1: accumulator )
-// 	glBindImageTexture( 0, blueNoiseTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI );
-// 	glBindImageTexture( 1, accumulatorTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI );
-//
-// 	// blablah draw something into accumulatorTexture
-// 	glUseProgram( dummyDrawShader );
-// 	glDispatchCompute( ( config.width + 15 ) / 16, ( config.height + 15 ) / 16, 1 );
-// 	glMemoryBarrier( GL_SHADER_IMAGE_ACCESS_BARRIER_BIT );
-//
-// // postprocessing
-// 	// set up environment ( 0:accumulator, 1:display )
-// 	glBindImageTexture( 0, accumulatorTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI );
-// 	glBindImageTexture( 1, displayTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI );
-//
-// 	// shader for color grading ( color temp, contrast, gamma ... ) + tonemapping
-// 	glUseProgram( tonemapShader );
-// 	SendTonemappingParameters();
-// 	glDispatchCompute( ( config.width + 15 ) / 16, ( config.height + 15 ) / 16, 1 );
-// 	glMemoryBarrier( GL_SHADER_IMAGE_ACCESS_BARRIER_BIT );
-//
-// 	// shader to apply dithering
-// 		// ...
-//
-// 	// other postprocessing
-// 		// ...
-//
-// 	// text rendering timestamp, as final step - required texture binds are handled internally
-// 	// textRenderer.Update( ImGui::GetIO().DeltaTime );
-// 	textRenderer.Draw( displayTexture ); // displayTexture is the writeTarget
-// 	glMemoryBarrier( GL_SHADER_IMAGE_ACCESS_BARRIER_BIT );
-// }
-
 
 void engine::Render () {
 	// different rendering modes - preview until pathtrace is triggered
@@ -137,36 +100,11 @@ void engine::Render () {
 		// quick raymarch, only runs when movement has happened since last render event
 			// don't need to update the history deques, as they will not be displayed
 
-
 		// run for every pixel on the screen
 		glDispatchCompute( ( config.width + 15 ) / 16, ( config.height + 15 ) / 16, 1 );
 		glMemoryBarrier( GL_ALL_BARRIER_BITS );
 	}
 }
-
-void engine::ClearColorAndDepth () {
-	ZoneScoped;
-
-	// clear the screen
-	glClearColor( config.clearColor.x, config.clearColor.y, config.clearColor.z, config.clearColor.w );
-	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-
-	ImGuiIO &io = ImGui::GetIO();
-	const int width = ( int ) io.DisplaySize.x;
-	const int height = ( int ) io.DisplaySize.y;
-	// prevent -1, -1 being passed on first frame, since ImGui hasn't rendered yet
-	glViewport( 0, 0, width > 0 ? width : config.width, height > 0 ? height : config.height ); // should this be elsewhere?
-}
-
-// void engine::BlitToScreen () {
-// 	// bind the displayTexture and display its current state - there are more efficient ways to do this, look into it
-// 	glBindImageTexture( 0, displayTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI );
-// 	glUseProgram( displayShader );
-// 	glBindVertexArray( displayVAO );
-// 	ImGuiIO &io = ImGui::GetIO();
-// 	glUniform2f( glGetUniformLocation( displayShader, "resolution" ), io.DisplaySize.x, io.DisplaySize.y );
-// 	glDrawArrays( GL_TRIANGLES, 0, 3 );
-// }
 
 void engine::UpdateNoiseOffsets () {
 	ZoneScoped;
@@ -248,11 +186,17 @@ void engine::BlitToScreen () {
 	// glClearColor( config.clearColor.x, config.clearColor.y, config.clearColor.z, config.clearColor.w );
 	// glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
+	ImGuiIO &io = ImGui::GetIO();
+	const int width = ( int ) io.DisplaySize.x;
+	const int height = ( int ) io.DisplaySize.y;
+	// prevent -1, -1 being passed on first frame, since ImGui hasn't rendered yet
+	glViewport( 0, 0, width > 0 ? width : config.width, height > 0 ? height : config.height ); // should this be elsewhere?
+
 	// texture display
 	glUseProgram( displayShader );
 	glBindVertexArray( displayVAO );
+	glBindImageTexture( 0, displayTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI );
 
-	ImGuiIO &io = ImGui::GetIO();
 	glUniform2f( glGetUniformLocation( displayShader, "resolution" ), io.DisplaySize.x, io.DisplaySize.y );
 	glDrawArrays( GL_TRIANGLES, 0, 3 );
 }
@@ -428,8 +372,7 @@ void engine::ImguiPass () {
 
 	// finished with the settings window
 	ImGui::End();
-
-	ImguiFrameEnd();						// finish up the imgui stuff and put it in the framebuffer
+	ImguiFrameEnd();	// finish up the imgui stuff and put it in the framebuffer
 }
 
 void engine::HandleEvents () {

@@ -64,8 +64,6 @@ private:
 	// main loop functions
 	void BlitToScreen ();
 	void HandleEvents ();
-	void ClearColorAndDepth ();
-	// void ComputePasses ();
 	void UpdateNoiseOffsets ();
 	void PathtraceUniformUpdate ();
 	void PostprocessUniformUpdate ();
