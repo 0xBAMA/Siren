@@ -2,8 +2,8 @@
 	"windowTitle":"NQADE",
 	"MSAACount":8,
 	"startOnScreen":1,
-	"screenWidth":1280,
-	"screenHeight":720,
+	"screenWidth":1600,
+	"screenHeight":900,
 	"windowOffset":{
 		"x":300,
 		"y":200
@@ -13,7 +13,7 @@
 	"OpenGLVersionMinor":3,
 	"reportPlatformInfo":true,
 	"enableDepthTesting":false,
-	"SDL_WINDOW_FULLSCREEN":true,
+	"SDL_WINDOW_FULLSCREEN":false,
 	"SDL_WINDOW_FULLSCREEN_DESKTOP":false,
 	"SDL_WINDOW_BORDERLESS":false,
 	"SDL_WINDOW_RESIZABLE":true,
