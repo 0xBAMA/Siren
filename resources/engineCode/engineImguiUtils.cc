@@ -41,14 +41,12 @@ void engine::DrawTextEditor () {
 	static TextEditor editor;
 
 	static auto language = TextEditor::LanguageDefinition::GLSL();
-	// static auto language = TextEditor::LanguageDefinition::CPlusPlus();
 	editor.SetLanguageDefinition( language );
 
 	auto cursorPosition = editor.GetCursorPosition();
-	editor.SetPalette( TextEditor::GetMonoPalette() );
+	editor.SetPalette( TextEditor::GetDarkPalette() );
 
-	static const char *fileToEdit = "resources/engineCode/shaders/blit.vs.glsl";
-	// static const char *fileToEdit = "resources/engineCode/engineImguiUtils.cc";
+	static const char *fileToEdit = "resources/engineCode/shaders/pathtrace.cs.glsl";
 	static bool loaded = false;
 	if ( !loaded ) {
 		std::ifstream t ( fileToEdit );
@@ -66,8 +64,16 @@ void engine::DrawTextEditor () {
 		editor.CanUndo() ? "*" : " ",
 		editor.GetLanguageDefinitionName(), fileToEdit );
 
+	ImGui::SameLine();
+	if ( ImGui::SmallButton( "Shader Hot Recompile" ) ) {
+		// recompile the pathtrace shader from the string in the editor
+	}
+	ImGui::SameLine();
+	if ( ImGui::SmallButton( "Save Pathtrace Shader" ) ) {
+		// overwrite the shader text file
+	}
+
 	editor.Render( "Editor" );
-	HelpMarker( "dummy helpmarker to get rid of unused warning" );
 	ImGui::End();
 }
 

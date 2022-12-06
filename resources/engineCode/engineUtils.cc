@@ -372,7 +372,12 @@ void engine::ImguiPass () {
 
 	// finished with the settings window
 	ImGui::End();
-	ImguiFrameEnd();	// finish up the imgui stuff and put it in the framebuffer
+
+	// draw the editor, allows for runtime editing of the pathtracer
+	DrawTextEditor();
+
+	// finish up the imgui stuff and put it in the framebuffer
+	ImguiFrameEnd();
 }
 
 void engine::HandleEvents () {
@@ -382,87 +387,91 @@ void engine::HandleEvents () {
 	const uint8_t *state = SDL_GetKeyboardState( NULL );
 	const float scalar = SDL_GetModState() & KMOD_SHIFT ? 0.02f : 0.0005f;
 
-	if ( state[ SDL_SCANCODE_P ] ) {
-		cout << to_string( core.viewerPosition ) << newline;	// show current position of the viewer
-	}
+	ImGuiIO &io = ImGui::GetIO();
+	if ( !io.WantCaptureKeyboard ) {
 
-	if ( state[ SDL_SCANCODE_R ] ) {
-		ResetAccumulators();
-		host.rendererRequiresUpdate = true;
-	}
-
-	// quaternion based rotation via retained state in the basis vectors - much easier to use than the arbitrary euler angles
-	if ( state[ SDL_SCANCODE_W ] ) {
-		glm::quat rot = glm::angleAxis( -scalar, core.basisX ); // basisX is the axis, therefore remains untransformed
-		core.basisY = ( rot * vec4( core.basisY, 0.0f ) ).xyz();
-		core.basisZ = ( rot * vec4( core.basisZ, 0.0f ) ).xyz();
-		host.rendererRequiresUpdate = true;
-	}
-	if ( state[ SDL_SCANCODE_S ] ) {
-		glm::quat rot = glm::angleAxis( scalar, core.basisX );
-		core.basisY = ( rot * vec4( core.basisY, 0.0f ) ).xyz();
-		core.basisZ = ( rot * vec4( core.basisZ, 0.0f ) ).xyz();
-		host.rendererRequiresUpdate = true;
-	}
-	if ( state[ SDL_SCANCODE_A ] ) {
-		glm::quat rot = glm::angleAxis( -scalar, core.basisY ); // same as above, but basisY is the axis
-		core.basisX = ( rot * vec4( core.basisX, 0.0f ) ).xyz();
-		core.basisZ = ( rot * vec4( core.basisZ, 0.0f ) ).xyz();
-		host.rendererRequiresUpdate = true;
-	}
-	if ( state[ SDL_SCANCODE_D ] ) {
-		glm::quat rot = glm::angleAxis( scalar, core.basisY );
-		core.basisX = ( rot * vec4( core.basisX, 0.0f ) ).xyz();
-		core.basisZ = ( rot * vec4( core.basisZ, 0.0f ) ).xyz();
-		host.rendererRequiresUpdate = true;
-	}
-	if ( state[ SDL_SCANCODE_Q ] ) {
-		glm::quat rot = glm::angleAxis( -scalar, core.basisZ ); // and again for basisZ
-		core.basisX = ( rot * vec4( core.basisX, 0.0f ) ).xyz();
-		core.basisY = ( rot * vec4( core.basisY, 0.0f ) ).xyz();
-		host.rendererRequiresUpdate = true;
-	}
-	if ( state[ SDL_SCANCODE_E ] ) {
-		glm::quat rot = glm::angleAxis( scalar, core.basisZ );
-		core.basisX = ( rot * vec4( core.basisX, 0.0f ) ).xyz();
-		core.basisY = ( rot * vec4( core.basisY, 0.0f ) ).xyz();
-		host.rendererRequiresUpdate = true;
-	}
-
-	// f to reset basis, shift + f to reset basis and home to origin
-	if ( state[ SDL_SCANCODE_F ] ) {
-		if ( SDL_GetModState() & KMOD_SHIFT ) {
-			core.viewerPosition = vec3( 0.0f, 0.0f, 0.0f );
+		if ( state[ SDL_SCANCODE_P ] ) {
+			cout << to_string( core.viewerPosition ) << newline;	// show current position of the viewer
 		}
-		// reset to default basis
-		core.basisX = vec3( 1.0f, 0.0f, 0.0f );
-		core.basisY = vec3( 0.0f, 1.0f, 0.0f );
-		core.basisZ = vec3( 0.0f, 0.0f, 1.0f );
-		host.rendererRequiresUpdate = true;
-	}
-	if ( state[ SDL_SCANCODE_UP ] ) {
-		core.viewerPosition += scalar * core.basisZ;
-		host.rendererRequiresUpdate = true;
-	}
-	if ( state[ SDL_SCANCODE_DOWN ] ) {
-		core.viewerPosition -= scalar * core.basisZ;
-		host.rendererRequiresUpdate = true;
-	}
-	if ( state[ SDL_SCANCODE_RIGHT ] ) {
-		core.viewerPosition += scalar * core.basisX;
-		host.rendererRequiresUpdate = true;
-	}
-	if ( state[ SDL_SCANCODE_LEFT ] ) {
-		core.viewerPosition -= scalar * core.basisX;
-		host.rendererRequiresUpdate = true;
-	}
-	if ( state[ SDL_SCANCODE_PAGEUP ] ) {
-		core.viewerPosition += scalar * core.basisY;
-		host.rendererRequiresUpdate = true;
-	}
-	if ( state[ SDL_SCANCODE_PAGEDOWN ] ) {
-		core.viewerPosition -= scalar * core.basisY;
-		host.rendererRequiresUpdate = true;
+
+		if ( state[ SDL_SCANCODE_R ] ) {
+			ResetAccumulators();
+			host.rendererRequiresUpdate = true;
+		}
+
+		// quaternion based rotation via retained state in the basis vectors - much easier to use than the arbitrary euler angles
+		if ( state[ SDL_SCANCODE_W ] ) {
+			glm::quat rot = glm::angleAxis( -scalar, core.basisX ); // basisX is the axis, therefore remains untransformed
+			core.basisY = ( rot * vec4( core.basisY, 0.0f ) ).xyz();
+			core.basisZ = ( rot * vec4( core.basisZ, 0.0f ) ).xyz();
+			host.rendererRequiresUpdate = true;
+		}
+		if ( state[ SDL_SCANCODE_S ] ) {
+			glm::quat rot = glm::angleAxis( scalar, core.basisX );
+			core.basisY = ( rot * vec4( core.basisY, 0.0f ) ).xyz();
+			core.basisZ = ( rot * vec4( core.basisZ, 0.0f ) ).xyz();
+			host.rendererRequiresUpdate = true;
+		}
+		if ( state[ SDL_SCANCODE_A ] ) {
+			glm::quat rot = glm::angleAxis( -scalar, core.basisY ); // same as above, but basisY is the axis
+			core.basisX = ( rot * vec4( core.basisX, 0.0f ) ).xyz();
+			core.basisZ = ( rot * vec4( core.basisZ, 0.0f ) ).xyz();
+			host.rendererRequiresUpdate = true;
+		}
+		if ( state[ SDL_SCANCODE_D ] ) {
+			glm::quat rot = glm::angleAxis( scalar, core.basisY );
+			core.basisX = ( rot * vec4( core.basisX, 0.0f ) ).xyz();
+			core.basisZ = ( rot * vec4( core.basisZ, 0.0f ) ).xyz();
+			host.rendererRequiresUpdate = true;
+		}
+		if ( state[ SDL_SCANCODE_Q ] ) {
+			glm::quat rot = glm::angleAxis( -scalar, core.basisZ ); // and again for basisZ
+			core.basisX = ( rot * vec4( core.basisX, 0.0f ) ).xyz();
+			core.basisY = ( rot * vec4( core.basisY, 0.0f ) ).xyz();
+			host.rendererRequiresUpdate = true;
+		}
+		if ( state[ SDL_SCANCODE_E ] ) {
+			glm::quat rot = glm::angleAxis( scalar, core.basisZ );
+			core.basisX = ( rot * vec4( core.basisX, 0.0f ) ).xyz();
+			core.basisY = ( rot * vec4( core.basisY, 0.0f ) ).xyz();
+			host.rendererRequiresUpdate = true;
+		}
+
+		// f to reset basis, shift + f to reset basis and home to origin
+		if ( state[ SDL_SCANCODE_F ] ) {
+			if ( SDL_GetModState() & KMOD_SHIFT ) {
+				core.viewerPosition = vec3( 0.0f, 0.0f, 0.0f );
+			}
+			// reset to default basis
+			core.basisX = vec3( 1.0f, 0.0f, 0.0f );
+			core.basisY = vec3( 0.0f, 1.0f, 0.0f );
+			core.basisZ = vec3( 0.0f, 0.0f, 1.0f );
+			host.rendererRequiresUpdate = true;
+		}
+		if ( state[ SDL_SCANCODE_UP ] ) {
+			core.viewerPosition += scalar * core.basisZ;
+			host.rendererRequiresUpdate = true;
+		}
+		if ( state[ SDL_SCANCODE_DOWN ] ) {
+			core.viewerPosition -= scalar * core.basisZ;
+			host.rendererRequiresUpdate = true;
+		}
+		if ( state[ SDL_SCANCODE_RIGHT ] ) {
+			core.viewerPosition += scalar * core.basisX;
+			host.rendererRequiresUpdate = true;
+		}
+		if ( state[ SDL_SCANCODE_LEFT ] ) {
+			core.viewerPosition -= scalar * core.basisX;
+			host.rendererRequiresUpdate = true;
+		}
+		if ( state[ SDL_SCANCODE_PAGEUP ] ) {
+			core.viewerPosition += scalar * core.basisY;
+			host.rendererRequiresUpdate = true;
+		}
+		if ( state[ SDL_SCANCODE_PAGEDOWN ] ) {
+			core.viewerPosition -= scalar * core.basisY;
+			host.rendererRequiresUpdate = true;
+		}
 	}
 
 //==============================================================================
