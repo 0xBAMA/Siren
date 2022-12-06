@@ -168,6 +168,7 @@ void engine::SetupTextureData () {
 	glActiveTexture( GL_TEXTURE3 );
 	glBindTexture( GL_TEXTURE_2D, blueNoiseTexture );
 	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, blueNoiseImage.width, blueNoiseImage.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &blueNoiseImage.data[ 0 ] );
+	glBindImageTexture( 3, blueNoiseTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI );
 
 	cout << T_GREEN << "done." << RESET << newline;
 }

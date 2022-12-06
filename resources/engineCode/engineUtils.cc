@@ -380,7 +380,7 @@ void engine::HandleEvents () {
 
 	// can handle multiple simultaneous inputs with the state array
 	const uint8_t *state = SDL_GetKeyboardState( NULL );
-	const float scalar = SDL_GetModState() & KMOD_SHIFT ? 1000.0f : 10.0f;
+	const float scalar = SDL_GetModState() & KMOD_SHIFT ? 0.02f : 0.0005f;
 
 	if ( state[ SDL_SCANCODE_P ] ) {
 		cout << to_string( core.viewerPosition ) << newline;	// show current position of the viewer
@@ -441,27 +441,27 @@ void engine::HandleEvents () {
 		host.rendererRequiresUpdate = true;
 	}
 	if ( state[ SDL_SCANCODE_UP ] ) {
-		core.viewerPosition += ( SDL_GetModState() & KMOD_SHIFT ? 0.07f : 0.005f ) * core.basisZ;
+		core.viewerPosition += scalar * core.basisZ;
 		host.rendererRequiresUpdate = true;
 	}
 	if ( state[ SDL_SCANCODE_DOWN ] ) {
-		core.viewerPosition -= ( SDL_GetModState() & KMOD_SHIFT ? 0.07f : 0.005f ) * core.basisZ;
+		core.viewerPosition -= scalar * core.basisZ;
 		host.rendererRequiresUpdate = true;
 	}
 	if ( state[ SDL_SCANCODE_RIGHT ] ) {
-		core.viewerPosition += ( SDL_GetModState() & KMOD_SHIFT ? 0.07f : 0.005f ) * core.basisX;
+		core.viewerPosition += scalar * core.basisX;
 		host.rendererRequiresUpdate = true;
 	}
 	if ( state[ SDL_SCANCODE_LEFT ] ) {
-		core.viewerPosition -= ( SDL_GetModState() & KMOD_SHIFT ? 0.07f : 0.005f ) * core.basisX;
+		core.viewerPosition -= scalar * core.basisX;
 		host.rendererRequiresUpdate = true;
 	}
 	if ( state[ SDL_SCANCODE_PAGEUP ] ) {
-		core.viewerPosition += ( SDL_GetModState() & KMOD_SHIFT ? 0.07f : 0.005f ) * core.basisY;
+		core.viewerPosition += scalar * core.basisY;
 		host.rendererRequiresUpdate = true;
 	}
 	if ( state[ SDL_SCANCODE_PAGEDOWN ] ) {
-		core.viewerPosition -= ( SDL_GetModState() & KMOD_SHIFT ? 0.07f : 0.005f ) * core.basisY;
+		core.viewerPosition -= scalar * core.basisY;
 		host.rendererRequiresUpdate = true;
 	}
 
