@@ -10,7 +10,7 @@ void engine::LoadConfig () {
 	cout << T_BLUE << "    Configuring Application" << RESET << " ................... ";
 	json j;
 	// load the config json, populate config struct - this will probably have more data, eventually
-	ifstream i( "src/engineCode/config.json" );
+	ifstream i( "src/engine/config.json" );
 	i >> j; i.close();
 	config.windowTitle = j[ "windowTitle" ];
 	config.width = j[ "screenWidth" ];
@@ -180,11 +180,11 @@ void engine::ShaderCompile () {
 	// textRenderer.Init( config.width, config.height, computeShader( "src/fonts/fontRenderer/font.cs.glsl" ).shaderHandle );
 
 	// compute shaders
-	pathtraceShader = computeShader( "src/engineCode/shaders/pathtrace.cs.glsl" ).shaderHandle;
-	postprocessShader = computeShader( "src/engineCode/shaders/postprocess.cs.glsl" ).shaderHandle;
+	pathtraceShader = computeShader( "src/engine/shaders/pathtrace.cs.glsl" ).shaderHandle;
+	postprocessShader = computeShader( "src/engine/shaders/postprocess.cs.glsl" ).shaderHandle;
 
 	// create the shader for the triangles to cover the screen
-	displayShader = regularShader( "src/engineCode/shaders/blit.vs.glsl", "src/engineCode/shaders/blit.fs.glsl" ).shaderHandle;
+	displayShader = regularShader( "src/engine/shaders/blit.vs.glsl", "src/engine/shaders/blit.fs.glsl" ).shaderHandle;
 
 	cout << T_GREEN << "done." << RESET << newline;
 }

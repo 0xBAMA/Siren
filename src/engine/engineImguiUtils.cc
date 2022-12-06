@@ -46,7 +46,7 @@ void engine::DrawTextEditor () {
 	auto cursorPosition = editor.GetCursorPosition();
 	editor.SetPalette( TextEditor::GetDarkPalette() );
 
-	static const char *fileToEdit = "src/engineCode/shaders/pathtrace.cs.glsl";
+	static const char *fileToEdit = "src/engine/shaders/pathtrace.cs.glsl";
 	static bool loaded = false;
 	if ( !loaded ) {
 		std::ifstream t ( fileToEdit );

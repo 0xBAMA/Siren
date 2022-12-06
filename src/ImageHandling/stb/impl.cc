@@ -17,4 +17,4 @@
 //	the image handling like the rest of the stuff in this file
 #define STB_INCLUDE_IMPLEMENTATION
 #define STB_INCLUDE_LINE_GLSL
-#include "../../engineCode/shaders/lib/stb_include.h"
+#include "../../engine/shaders/lib/stb_include.h"

@@ -34,7 +34,7 @@ static string ProcessIncludeString ( string source ) {
 	char includeError[ 256 ];
 	char * inject = nullptr;
 	char * filename = nullptr;
-	char * cstrCode = stb_include_string( source.c_str(), inject, const_cast<char*>( "src/engineCode/shaders/lib" ), filename, includeError );
+	char * cstrCode = stb_include_string( source.c_str(), inject, const_cast<char*>( "src/engine/shaders/lib" ), filename, includeError );
 	return string( cstrCode );
 }
 

@@ -84,11 +84,11 @@ target_compile_options( CompilerFlags INTERFACE -Wall -O3 -std=c++17 -lGL -lstdc
 add_executable( exe
 	src/tracy/public/TracyClient.cpp
 	src/noise/perlin.cc
-	src/engineCode/main.cc
-	src/engineCode/engine.cc
-	src/engineCode/engineUtils.cc
-	src/engineCode/engineInit.cc
-	src/engineCode/engineImguiUtils.cc
+	src/engine/main.cc
+	src/engine/engine.cc
+	src/engine/engineUtils.cc
+	src/engine/engineInit.cc
+	src/engine/engineImguiUtils.cc
 	src/ImageHandling/LodePNG/lodepng.cc
 )
 

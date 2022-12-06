@@ -2,7 +2,7 @@
 #define SOFTRAST
 
 #include "../ModelLoading/TinyOBJLoader/tiny_obj_loader.h"
-#include "../engineCode/includes.h"
+#include "../engine/includes.h"
 
 struct triangle {
 	vec3 p0, p1, p2; // per vertex position
