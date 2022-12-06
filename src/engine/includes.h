@@ -142,7 +142,7 @@ struct colorGradeParameters {
 
 
 // Siren specific structs
-enum class renderMode { previewColor, previewNormal, previewDepth, pathtrace };
+enum class renderMode { previewColor, previewNormal, previewDepth, previewShaded, pathtrace };
 struct hostParameters {
 	bool rendererRequiresUpdate = true;				// has the viewer moved since the screen has updated?
 	renderMode currentMode = renderMode::previewColor; // how should we render the scene?

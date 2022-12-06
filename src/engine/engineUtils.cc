@@ -36,6 +36,7 @@ void engine::Render () {
 		case renderMode::previewColor:	mode = 1; break;
 		case renderMode::previewNormal:	mode = 2; break;
 		case renderMode::previewDepth:	mode = 3; break;
+		case renderMode::previewShaded:	mode = 4; break;
 		default: break;
 	}
 	glUniform1i( glGetUniformLocation( pathtraceShader, "modeSelect" ), mode );
@@ -249,12 +250,15 @@ void engine::ImguiPass () {
 			ImGui::SameLine();
 			ImGui::RadioButton( "Preview Depth", &pickt, 3 ); UPDATECHECK;
 			ImGui::SameLine();
+			ImGui::RadioButton( "Preview Shaded", &pickt, 4 ); UPDATECHECK;
+			ImGui::SameLine();
 			ImGui::RadioButton( "Pathtrace", &pickt, 0 ); UPDATECHECK;
 			switch ( pickt ) {
 				case 0: host.currentMode = renderMode::pathtrace; break;
 				case 1: host.currentMode = renderMode::previewColor; break;
 				case 2: host.currentMode = renderMode::previewNormal; break;
 				case 3: host.currentMode = renderMode::previewDepth; break;
+				case 4: host.currentMode = renderMode::previewShaded; break;
 				default: break;
 			}
 

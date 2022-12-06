@@ -69,6 +69,7 @@ void engine::DrawTextEditor () {
 		auto t1 = std::chrono::high_resolution_clock::now();
 		computeShader shader( editor.GetText(), computeShader::shaderSource::fromString );
 		if ( shader.success ) {
+			host.rendererRequiresUpdate = true;
 			pathtraceShader = shader.shaderHandle;
 			// finish report + report timing
 			auto t2 = std::chrono::high_resolution_clock::now();

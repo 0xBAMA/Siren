@@ -387,6 +387,7 @@ vec3 colorSample ( vec3 rayOrigin_in, vec3 rayDirection_in ) {
 				case PREVIEW_DIFFUSE: return hitpointColor; break;
 				case PREVIEW_NORMAL: return hitpointNormal; break;
 				case PREVIEW_DEPTH: return hitpointDepth; break;
+				case PREVIEW_SHADED: return hitpointColor * ( 1.0f / calcAO( pHit, hitpointNormal ) ); break;
 			}
 		} else {
 			return vec3( 0.0f );
@@ -550,6 +551,7 @@ void main () {
 		case PREVIEW_DIFFUSE:
 		case PREVIEW_NORMAL:
 		case PREVIEW_DEPTH:
+		case PREVIEW_SHADED:
 			location = ivec2( gl_GlobalInvocationID.xy );
 			imageStore( accumulatorColor, location, vec4( pathtraceSample( location, 0 ), 1.0f ) );
 			break;
