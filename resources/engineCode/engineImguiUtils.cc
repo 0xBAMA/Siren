@@ -55,22 +55,46 @@ void engine::DrawTextEditor () {
 			editor.SetText( std::string( ( std::istreambuf_iterator< char >( t ) ), std::istreambuf_iterator< char >() ) );
 			loaded = true;
 		}
+		t.close();
 	}
 
 	// add dropdown for different shaders? this can be whatever
-	ImGui::Text( "%6d/%-6d %6d lines  | %s | %s | %s | %s", cursorPosition.mLine + 1,
+	ImGui::Text( "%6d/%-6d %6d lines  | %s | %s | %s | %s ", cursorPosition.mLine + 1,
 		cursorPosition.mColumn + 1, editor.GetTotalLines(),
 		editor.IsOverwrite() ? "Ovr" : "Ins",
 		editor.CanUndo() ? "*" : " ",
 		editor.GetLanguageDefinitionName(), fileToEdit );
-
 	ImGui::SameLine();
-	if ( ImGui::SmallButton( "Shader Hot Recompile" ) ) {
-		// recompile the pathtrace shader from the string in the editor
+	if ( ImGui::SmallButton( " Hot Recompile " ) ) { // recompile the pathtrace shader out of the editor string
+		auto t1 = std::chrono::high_resolution_clock::now();
+		computeShader shader( editor.GetText(), computeShader::shaderSource::fromString );
+		if ( shader.success ) {
+			pathtraceShader = shader.shaderHandle;
+			// finish report + report timing
+			auto t2 = std::chrono::high_resolution_clock::now();
+			shader.report << std::setw( 4 ) << "Done in " << std::chrono::duration_cast<std::chrono::microseconds>( t2 - t1 ).count() / 1000.0f << "ms";
+			cout << newline << shader.report.str() << newline;
+		}
 	}
 	ImGui::SameLine();
-	if ( ImGui::SmallButton( "Save Pathtrace Shader" ) ) {
-		// overwrite the shader text file
+	ImGui::Text( " " );
+	ImGui::SameLine();
+	if ( ImGui::SmallButton( " Save Shader " ) ) { // overwrite the shader text file
+		std::ofstream file( "resources/engine_code/shaders/pathtrace.cs.glsl" );
+		std::string savetext( editor.GetText() );
+		file << savetext;
+		file.close();
+	}
+	ImGui::SameLine();
+	ImGui::Text( " " );
+	ImGui::SameLine();
+	if ( ImGui::SmallButton( " Reload From Disk " ) ) { // reload the file
+		std::ifstream t( fileToEdit );
+		if ( t.good() ) {
+			editor.SetText( std::string( ( std::istreambuf_iterator< char >( t ) ), std::istreambuf_iterator< char >() ) );
+			loaded = true;
+		}
+		t.close();
 	}
 
 	editor.Render( "Editor" );
