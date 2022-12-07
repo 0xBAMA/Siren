@@ -41,7 +41,7 @@ uniform float lensRadius1;			// radius of the sphere for the first side
 uniform float lensRadius2;			// radius of the sphere for the second side
 uniform float lensThickness;		// offset between the two spheres
 uniform float lensRotate;			// rotating the displacement offset betwee spheres
-uniform float lensIOR;				// index of refraction for the lens
+uniform float lensIoR;				// index of refraction for the lens
 
 // scene parameters
 uniform vec3 redWallColor;
@@ -52,7 +52,7 @@ uniform vec3 metallicDiffuse;
 
 // global state
 	// requires manual management of geo, to ensure that the lens material does not intersect with itself
-float refractState = 1.0f; // multiply by the lens distance estimate, to invert when inside a refractive object
+bool enteringRefractive = false; // multiply by the lens distance estimate, to invert when inside a refractive object
 float sampleCount = 0.0f;
 
 bool boundsCheck ( ivec2 loc ) { // used to abort off-image samples
@@ -78,13 +78,13 @@ uint wangHash () {
 	return seed;
 }
 
-float randomFloat () {
+float normalizedRandomFloat () {
 	return float( wangHash() ) / 4294967296.0f;
 }
 
 vec3 randomUnitVector () {
-	float z = randomFloat() * 2.0f - 1.0f;
-	float a = randomFloat() * 2.0f * PI;
+	float z = normalizedRandomFloat() * 2.0f - 1.0f;
+	float a = normalizedRandomFloat() * 2.0f * PI;
 	float r = sqrt( 1.0f - z * z );
 	float x = r * cos( a );
 	float y = r * sin( a );
@@ -150,7 +150,7 @@ float deLens ( vec3 p ){
 
 	// dFinal = fOpIntersectionRound( sphere1, sphere2, 0.03 );
 	dFinal = max( sphere1, sphere2 );
-	return dFinal * lensScaleFactor * refractState;
+	return dFinal * lensScaleFactor;
 }
 
 float dePlane ( vec3 p, vec3 normal, float distanceFromOrigin ) {
@@ -280,15 +280,16 @@ float de ( vec3 p ) {
 	sceneDist = min( dFractal, sceneDist );
 	if ( sceneDist == dFractal && dFractal <= epsilon ) {
 		hitpointColor = metallicDiffuse;
-		hitpointSurfaceType = SPECULAR;
+		hitpointSurfaceType = DIFFUSE;
 	}
 
 	// lens object
-	float dLens = deLens( p );
+	float dLens = ( enteringRefractive ? -1.0f : 1.0f ) * deLens( p );
 	sceneDist = min( dLens, sceneDist );
 	if ( sceneDist == dLens && dLens <= epsilon ) {
 		hitpointColor = vec3( 0.11f );
 		hitpointSurfaceType = REFRACTIVE;
+		enteringRefractive = !enteringRefractive;
 	}
 
 	// cieling and floor
@@ -350,6 +351,37 @@ vec3 normal ( vec3 p ) {
 	}
 }
 
+// there's definitely a better way to do this, instead of two separate functions - some preprocessor fuckery? tbd
+vec3 lensNormal ( vec3 p ) {
+	vec2 e;
+	switch( normalMethod ) {
+		case 0: // tetrahedron version, unknown original source - 4 DE evaluations
+			e = vec2( 1.0f, -1.0f ) * epsilon / 10.0f;
+			return normalize( e.xyy * deLens( p + e.xyy ) + e.yyx * deLens( p + e.yyx ) + e.yxy * deLens( p + e.yxy ) + e.xxx * deLens( p + e.xxx ) );
+			break;
+
+		case 1: // from iq = more efficient, 4 DE evaluations
+			e = vec2( epsilon, 0.0f ) / 10.0f;
+			return normalize( vec3( deLens( p ) ) - vec3( deLens( p - e.xyy ), deLens( p - e.yxy ), deLens( p - e.yyx ) ) );
+			break;
+
+		case 2: // from iq - less efficient, 6 DE evaluations
+			e = vec2( epsilon, 0.0f );
+			return normalize( vec3( deLens( p + e.xyy ) - deLens( p - e.xyy ), deLens( p + e.yxy ) - deLens( p - e.yxy ), deLens( p + e.yyx ) - deLens( p - e.yyx ) ) );
+			break;
+
+		default:
+			break;
+	}
+}
+
+float reflectance ( float cosTheta, float IoR ) {
+	// Use Schlick's approximation for reflectance
+	float r0 = ( 1.0f - IoR ) / ( 1.0f + IoR );
+	r0 = r0 * r0;
+	return r0 + ( 1.0f - r0 ) * pow( ( 1.0f - cosTheta ), 5.0f );
+}
+
 // raymarches to the next hit
 float raymarch ( vec3 origin, vec3 direction ) {
 	float dQuery = 0.0f;
@@ -397,6 +429,8 @@ vec3 colorSample ( vec3 rayOrigin_in, vec3 rayDirection_in ) {
 	// loop to max bounces
 	for( int bounce = 0; bounce < maxBounces; bounce++ ) {
 		float dResult = raymarch( rayOrigin, rayDirection );
+		int hitpointSurfaceType_cache = hitpointSurfaceType;
+		vec3 hitpointColor_cache = hitpointColor;
 
 		// cache previous values of rayOrigin, rayDirection, and get new hit position
 		previousRayOrigin = rayOrigin;
@@ -408,7 +442,9 @@ vec3 colorSample ( vec3 rayOrigin_in, vec3 rayDirection_in ) {
 
 		// bump rayOrigin along the normal to prevent false positive hit on next bounce
 			// now you are at least epsilon distance from the surface, so you won't immediately hit
-		rayOrigin += 2.0f * epsilon * hitNormal;
+		if ( hitpointSurfaceType_cache != REFRACTIVE ) {
+			rayOrigin += 2.0f * epsilon * hitNormal;
+		}
 
 	// these are mixed per-material
 		// construct new rayDirection vector, diffuse reflection off the surface
@@ -419,7 +455,7 @@ vec3 colorSample ( vec3 rayOrigin_in, vec3 rayDirection_in ) {
 
 		// currently just implementing diffuse and emissive behavior
 			// eventually add different ray behaviors for each material here
-		switch ( hitpointSurfaceType ) {
+		switch ( hitpointSurfaceType_cache ) {
 
 			case EMISSIVE:
 				finalColor += throughput * hitpointColor;
@@ -427,35 +463,45 @@ vec3 colorSample ( vec3 rayOrigin_in, vec3 rayDirection_in ) {
 
 			case DIFFUSE:
 				rayDirection = randomVectorDiffuse;
-				throughput *= hitpointColor; // attenuate throughput by surface albedo
+				throughput *= hitpointColor_cache; // attenuate throughput by surface albedo
 				break;
 
 			case SPECULAR:
 				rayDirection = mix( randomVectorDiffuse, randomVectorSpecular, 0.7f );
-				throughput *= hitpointColor;
+				throughput *= hitpointColor_cache;
 				break;
 
-			case REFRACTIVE:
-				// ray refracts, instead of bouncing
-				// for now, perfect reflector with small attenuation
-				rayDirection = reflectedVector;
-				throughput *= 0.7f;
+			case REFRACTIVE: // ray refracts, instead of bouncing
+				// bump by the appropriate amount
+				vec3 lensNorm = ( enteringRefractive ? 1.0f : -1.0f ) * lensNormal( rayOrigin );
+				rayOrigin -= 2.0f * epsilon * lensNorm;
 
-				// flip the sign to invert the lens material distance estimate, because the ray is either entering or leaving a refractive medium
-				// refractState = -1.0 * refractState;
+				// entering or leaving
+				float IoR = enteringRefractive ? lensIoR : 1.0f / lensIoR;
+				float cosTheta = min( dot( -normalize( rayDirection ), lensNorm ), 1.0f );
+				float sinTheta = sqrt( 1.0f - cosTheta * cosTheta );
+
+				// accounting for TIR effects
+				bool cannotRefract = IoR * sinTheta > 1.0f;
+				if ( cannotRefract || reflectance( cosTheta, IoR ) > normalizedRandomFloat() ) {
+					rayDirection = reflect( normalize( rayDirection ), lensNorm );
+				} else {
+					rayDirection = refract( normalize( rayDirection ), lensNorm, IoR );
+				}
+
 				break;
 
 			default:
 				break;
-
 		}
 
-		// russian roulette termination - chance for ray to quit early
-		float maxChannel = max( throughput.r, max( throughput.g, throughput.b ) );
-		if ( randomFloat() > maxChannel ) break;
-
-		// russian roulette compensation term
-		throughput *= 1.0f / maxChannel;
+		if ( hitpointSurfaceType_cache != REFRACTIVE ) {
+			// russian roulette termination - chance for ray to quit early
+			float maxChannel = max( throughput.r, max( throughput.g, throughput.b ) );
+			if ( normalizedRandomFloat() > maxChannel ) break;
+			// russian roulette compensation term
+			throughput *= 1.0f / maxChannel;
+		}
 	}
 
 	return finalColor;
@@ -472,7 +518,7 @@ vec2 getRandomOffset ( int n ) {
 	#endif
 	// wang hash random offsets
 	#ifdef RANDOM
-		return vec2( randomFloat(), randomFloat() );
+		return vec2( normalizedRandomFloat(), normalizedRandomFloat() );
 	#endif
 	#ifdef BLUE
 		return blueNoiseReference( ivec2( gl_GlobalInvocationID.xy ) ).xy;
@@ -499,7 +545,7 @@ vec3 pathtraceSample ( ivec2 location, int n ) {
 #endif
 
 			// pixel offset + mapped position
-			// vec2 offset = vec2( x + randomFloat(), y + randomFloat() ) / float( AA ) - 0.5; // previous method
+			// vec2 offset = vec2( x + normalizedRandomFloat(), y + normalizedRandomFloat() ) / float( AA ) - 0.5; // previous method
 			vec2 offset = getRandomOffset( n );
 			vec2 halfScreenCoord = vec2( imageSize( accumulatorColor ) / 2.0f );
 			vec2 mappedPosition = ( vec2( location + offset ) - halfScreenCoord ) / halfScreenCoord;
@@ -515,7 +561,7 @@ vec3 pathtraceSample ( ivec2 location, int n ) {
 				// this is a small adjustment to the ray origin and direction - not working correctly - need to revist this
 			// vec3 focuspoint = rayOrigin + ( ( rayDirection * focusDistance ) / dot( rayDirection, basisZ ) );
 			// vec2 diskOffset = thinLensIntensity * randomInUnitDisk();
-			// rayOrigin += diskOffset.x * basisX + diskOffset.y * basisY + thinLensIntensity * randomFloat() * basisZ;
+			// rayOrigin += diskOffset.x * basisX + diskOffset.y * basisY + thinLensIntensity * normalizedRandomFloat() * basisZ;
 			// rayDirection = normalize( focuspoint - rayOrigin );
 
 			// get depth and normals - think about special handling for refractive hits

@@ -183,7 +183,7 @@ struct lensParameters {
 	float lensRadius2 = 3.0f;						// radius of the second side of the lens
 	float lensThickness = 0.3f;						// amount by which the spheres are offset from one another, before intersection
 	float lensRotate = 0.0f;						// rotates the lens - should this be done this way, or two points? maybe a quaternion
-	float lensIOR = 1.2f;							// index of refraction of the lens material
+	float lensIoR = 1.2f;							// index of refraction of the lens material
 };
 
 struct sceneParameters {

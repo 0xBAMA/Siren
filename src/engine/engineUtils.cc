@@ -143,7 +143,7 @@ void engine::PathtraceUniformUpdate() {
 	glUniform1f( glGetUniformLocation( pathtraceShader, "lensRadius2" ), lens.lensRadius2 );
 	glUniform1f( glGetUniformLocation( pathtraceShader, "lensThickness" ), lens.lensThickness );
 	glUniform1f( glGetUniformLocation( pathtraceShader, "lensRotate" ), lens.lensRotate );
-	glUniform1f( glGetUniformLocation( pathtraceShader, "lensIOR" ), lens.lensIOR );
+	glUniform1f( glGetUniformLocation( pathtraceShader, "lensIoR" ), lens.lensIoR );
 
 	// scene
 	glUniform3f( glGetUniformLocation( pathtraceShader, "redWallColor" ), scene.redWallColor.x, scene.redWallColor.y, scene.redWallColor.z );
@@ -306,7 +306,7 @@ void engine::ImguiPass () {
 			ImGui::SliderFloat( "Lens Radius 2", &lens.lensRadius2, 0.01f, 10.0f ); UPDATECHECK;
 			ImGui::SliderFloat( "Lens Thickness", &lens.lensThickness, 0.01f, 10.0f ); UPDATECHECK;
 			ImGui::SliderFloat( "Lens Rotation", &lens.lensRotate, -35.0f, 35.0f ); UPDATECHECK;
-			ImGui::SliderFloat( "Lens IOR", &lens.lensIOR, 0.0f, 2.0f );
+			ImGui::SliderFloat( "Lens IOR", &lens.lensIoR, 0.0f, 2.0f );
 			ImGui::Separator();
 			ImGui::ColorEdit3( "Red Wall Color", ( float * ) &scene.redWallColor, ImGuiColorEditFlags_PickerHueWheel );
 			ImGui::ColorEdit3( "Green Wall Color", ( float * ) &scene.greenWallColor, ImGuiColorEditFlags_PickerHueWheel );
