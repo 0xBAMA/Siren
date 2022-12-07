@@ -14,6 +14,8 @@ uniform float depthScale; 	// scalar for depth term, when computing depth effect
 uniform float gamma; 		// gamma correction term for the color result
 uniform int displayType; 	// mode selector - show normals, show depth, show color, show postprocessed version
 
+#include "tonemap.glsl"
+
 vec3 gammaCorrect ( vec3 col ) {
 	return pow( col, vec3( 1.0 / gamma ) );
 }
@@ -29,11 +31,14 @@ void main() {
 	// RGB is normal, A is depth value, 32-bit per channel - these are currently unpopulated
 	// vec4 normalAndDepth = imageLoad( accumulatorNormal, location );
 
-	// do any postprocessing work, store back in display texture
-		// this is things like:
-		//	- depth fog
-		//	- tonemapping
-		//	- dithering
+// do any postprocessing work, store back in display texture
+	// this is things like:
+	//	- depth fog
+
+	//	- tonemapping
+	toStore.xyz = tonemap( tonemapMode, toStore.xyz );
+
+	//	- dithering
 
 	imageStore( display, location, uvec4( toStore.xyz * 255.0, 255 ) );
 }

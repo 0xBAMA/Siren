@@ -406,7 +406,7 @@ vec3 colorSample ( vec3 rayOrigin_in, vec3 rayDirection_in ) {
 	vec3 throughput = vec3( 1.0f );
 
 	// bump origin up by unit vector - creates fuzzy / soft section plane
-	rayOrigin += rayDirection * ( 0.9f + 0.1f * blueNoiseReference( location ).x );
+	// rayOrigin += rayDirection * ( 0.9f + 0.1f * blueNoiseReference( location ).x );
 
 	// debug output
 	if ( modeSelect != PATHTRACE ) {
