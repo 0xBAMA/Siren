@@ -537,11 +537,12 @@ vec3 pathtraceSample ( ivec2 location, int n ) {
 
 void main () {
 	location = ivec2( gl_GlobalInvocationID.xy ) + tileOffset;
+	if ( !boundsCheck( location ) ) return; // abort on out of bounds
+
 	seed = location.x * 1973 + location.y * 9277 + wangSeed;
 
 	switch ( modeSelect ) {
 		case PATHTRACE:
-			if ( !boundsCheck( location ) ) return; // abort on out of bounds
 			vec4 prevResult = imageLoad( accumulatorColor, location );
 			sampleCount = prevResult.a + 1.0f;
 			vec3 blendResult = mix( prevResult.rgb, pathtraceSample( location, int( sampleCount ) ), 1.0f / sampleCount );
