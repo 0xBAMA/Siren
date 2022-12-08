@@ -136,9 +136,12 @@ vec2 pMod2 ( inout vec2 p, vec2 size ) {
 // 4 refractive
 #define REFRACTIVE 4
 
+// eventually, probably define a list of materials, and index into that - that will allow for
+	// e.g. refractive materials of multiple different indices of refraction
+
 vec3 hitpointColor = vec3( 0.0f );
 int hitpointSurfaceType = NOHIT; // identifier for the hit surface
-float deLens ( vec3 p ){
+float deLens ( vec3 p ) {
 	// lens SDF
 	p /= lensScaleFactor;
 	float dFinal;
