@@ -230,7 +230,8 @@ mat3 rotY ( float t ) {
 float deBowl ( vec3 p ) {
 	p = rotY( PI / 2.0f ) * p;
 	p = rotZ( PI / 2.0f ) * p;
-	vec2 rm = radians( 360.0f ) * vec2( 0.468359f, 0.95317f ); // vary x,y 0.0 - 1.0
+	// vec2 rm = radians( 360.0f ) * vec2( 0.468359f, 0.95317f ); // vary x,y 0.0 - 1.0
+	vec2 rm = radians( 360.0f ) * vec2( 0.468359f, 0.9717f ); // vary x,y 0.0 - 1.0
 	mat3 scene_mtx = rotX( rm.x ) * rotY( rm.x ) * rotZ( rm.x ) * rotX( rm.y );
 	float scaleAccum = 1.;
 	for ( int i = 0; i < 24; ++i ) {
@@ -477,12 +478,13 @@ vec3 colorSample ( vec3 rayOrigin_in, vec3 rayDirection_in ) {
 				rayOrigin -= 2.0f * epsilon * lensNorm;
 
 				// entering or leaving
-				float IoR = enteringRefractive ? lensIoR : 1.0f / lensIoR;
+				// float IoR = enteringRefractive ? lensIoR : 1.0f / lensIoR;
+				float IoR = enteringRefractive ? ( 1.0f / lensIoR ) : lensIoR;
 				float cosTheta = min( dot( -normalize( rayDirection ), lensNorm ), 1.0f );
 				float sinTheta = sqrt( 1.0f - cosTheta * cosTheta );
 
 				// accounting for TIR effects
-				bool cannotRefract = IoR * sinTheta > 1.0f;
+				bool cannotRefract = ( IoR * sinTheta ) > 1.0f;
 				if ( cannotRefract || reflectance( cosTheta, IoR ) > normalizedRandomFloat() ) {
 					rayDirection = reflect( normalize( rayDirection ), lensNorm );
 				} else {
@@ -516,8 +518,7 @@ vec2 getRandomOffset ( int n ) {
 	#ifdef UNIFORM2
 		return fract( vec2( 0.0f ) + float( n ) * vec2( 0.754877669f, 0.569840296f ) );
 	#endif
-	// wang hash random offsets
-	#ifdef RANDOM
+	#ifdef RANDOM // wang hash random offsets
 		return vec2( normalizedRandomFloat(), normalizedRandomFloat() );
 	#endif
 	#ifdef BLUE
@@ -559,10 +560,10 @@ vec3 pathtraceSample ( ivec2 location, int n ) {
 
 			// thin lens DoF - adjust view vectors to converge at focusDistance
 				// this is a small adjustment to the ray origin and direction - not working correctly - need to revist this
-			// vec3 focuspoint = rayOrigin + ( ( rayDirection * focusDistance ) / dot( rayDirection, basisZ ) );
-			// vec2 diskOffset = thinLensIntensity * randomInUnitDisk();
-			// rayOrigin += diskOffset.x * basisX + diskOffset.y * basisY + thinLensIntensity * normalizedRandomFloat() * basisZ;
-			// rayDirection = normalize( focuspoint - rayOrigin );
+			vec3 focuspoint = rayOrigin + ( ( rayDirection * focusDistance ) / dot( rayDirection, basisZ ) );
+			vec2 diskOffset = thinLensIntensity * randomInUnitDisk();
+			rayOrigin += diskOffset.x * basisX + diskOffset.y * basisY + thinLensIntensity * normalizedRandomFloat() * basisZ;
+			rayDirection = normalize( focuspoint - rayOrigin );
 
 			// get depth and normals - think about special handling for refractive hits
 			// float distanceToFirstHit = raymarch( rayOrigin, rayDirection );

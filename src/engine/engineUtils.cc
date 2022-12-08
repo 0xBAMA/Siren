@@ -97,6 +97,8 @@ void engine::Render () {
 	// preview happens in a one shot fullscreen pass
 	} else if ( host.currentMode != renderMode::pathtrace && host.rendererRequiresUpdate == true ) {
 		host.rendererRequiresUpdate = false; // don't run again till state changes
+		ResetAccumulators();
+		glMemoryBarrier( GL_ALL_BARRIER_BITS );
 
 		// quick raymarch, only runs when movement has happened since last render event
 			// don't need to update the history deques, as they will not be displayed
@@ -129,6 +131,7 @@ void engine::PathtraceUniformUpdate() {
 	glUniform1f( glGetUniformLocation( pathtraceShader, "epsilon" ), core.epsilon );
 	glUniform1i( glGetUniformLocation( pathtraceShader, "normalMethod" ), core.normalMethod );
 	glUniform1f( glGetUniformLocation( pathtraceShader, "focusDistance" ), core.focusDistance );
+	glUniform1f( glGetUniformLocation( pathtraceShader, "thinLensIntensity" ), core.thinLensIntensity );
 	glUniform1f( glGetUniformLocation( pathtraceShader, "FoV" ), core.FoV );
 	glUniform1f( glGetUniformLocation( pathtraceShader, "exposure" ), core.exposure );
 	glUniform3f( glGetUniformLocation( pathtraceShader, "viewerPosition" ), core.viewerPosition.x, core.viewerPosition.y, core.viewerPosition.z );
@@ -284,11 +287,11 @@ void engine::ImguiPass () {
 			ImGui::SliderFloat( "Raymarch Understep", &core.understep, 0.1f, 1.0f );
 			ImGui::SliderFloat( "Raymarch Epsilon", &core.epsilon, 0.0001f, 0.1f, "%.4f" ); UPDATECHECK;
 			ImGui::Separator();
-			ImGui::SliderFloat( "Exposure", &core.exposure, 0.1f, 3.6f ); UPDATECHECK;
-			// ImGui::SliderFloat( "Thin Lens Focus Distance", &core.focusDistance, 0.0f, 200.0f );
-			// ImGui::SliderFloat( "Thin Lens Effect Intensity", &core.thinLensIntensity, 0.0f, 5.0f );
+			ImGui::SliderFloat( "Exposure", &core.exposure, 0.1f, 3.6f );
+			ImGui::SliderFloat( "Thin Lens Focus Distance", &core.focusDistance, 0.0f, 8.0f ); UPDATECHECK;
+			ImGui::SliderFloat( "Thin Lens Effect Intensity", &core.thinLensIntensity, 0.0f, 1.0f ); UPDATECHECK;
 			ImGui::Separator();
-			ImGui::SliderInt( "SDF Normal Method", &core.normalMethod, 1, 3 ); UPDATECHECK;
+			ImGui::SliderInt( "SDF Normal Method", &core.normalMethod, 1, 3 ); UPDATECHECK; // only the first one really works correctly, maybe remove this
 			ImGui::SliderFloat( "Field of View", &core.FoV, 0.01f, 2.5f ); UPDATECHECK;
 			ImGui::Separator();
 			ImGui::SliderFloat( "Viewer X", &core.viewerPosition.x, -20.0f, 20.0f ); UPDATECHECK;

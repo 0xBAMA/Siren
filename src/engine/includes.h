@@ -166,15 +166,15 @@ struct coreParameters {
 	float maxDistance = 100.0f;						// max raymarch distance
 	float epsilon = 0.0001f;						// raymarch surface epsilon
 	float exposure = 0.98f;							// scale factor for the final color result
-	float focusDistance = 10.0f;					// used for the thin lens approximation ( include an intensity scalar to this as well ( resize jitter disk ) )
-	float thinLensIntensity = 1.0f;					// scales the disk offset for the thin lens approximation ( scales the intensity of the effect )
+	float focusDistance = 1.0f;						// used for the thin lens approximation ( include an intensity scalar to this as well ( resize jitter disk ) )
+	float thinLensIntensity = 0.1f;					// scales the disk offset for the thin lens approximation ( scales the intensity of the effect )
 	int normalMethod = 1;							// method for calculating the surface normal for the SDF geometry
 	float FoV = 0.618f;								// FoV for the rendering - higher is wider
 	glm::vec3 viewerPosition = glm::vec3( 0.0f );	// location of the viewer
 	glm::vec3 basisX = glm::vec3( 1.0f, 0.0f, 0.0f );	// basis vectors are used to control viewer movement and rotation, as well as create the camera
 	glm::vec3 basisY = glm::vec3( 0.0f, 1.0f, 0.0f );
 	glm::vec3 basisZ = glm::vec3( 0.0f, 0.0f, 1.0f );
-	float understep = 0.618;						// scale factor on distance estimate when applied to the step during marching - lower is slower, as more steps are taken before reaching the surface
+	float understep = 0.618f;						// scale factor on distance estimate when applied to the step during marching - lower is slower, as more steps are taken before reaching the surface
 };
 
 struct lensParameters {
@@ -200,8 +200,8 @@ struct postParameters {
 	int ditherPattern = 0;							// pattern used to dither the output
 	int tonemapMode = 0;							// tonemap curve to use
 	int depthMode = 0;								// depth fog method
-	float depthScale = 0.0;							// scalar for depth term, when computing depth effects ( fog )
-	float gamma = 1.6;								// gamma correction term for the color result
+	float depthScale = 0.0f;						// scalar for depth term, when computing depth effects ( fog )
+	float gamma = 1.6f;								// gamma correction term for the color result
 	float colorTemp = 6500.0f;						// warmer or cooler colored image, 6500k neutral by default
 	int displayType = 0;							// mode selector - show normals, show depth, show color, show postprocessed version
 };
