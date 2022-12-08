@@ -7,6 +7,7 @@
 - Make sure to recurse submodules to pull in FastNoise2 code - `git submodule update --init --recursive`, alternatively just run scripts/init.sh to do the same thing. FastNoise2 may be removed, as I don't think it's particularly relevant to this project.
 - Run scripts/build.sh in order to build on Ubuntu. It just automates the building of the executable and moves it to the root directory, as files are referenced relative to that location, and then deletes the build folder (if called with the "clean" option).
 
+![ SDF Pathtracing ]( Screenshot-2022-12-07 23:28:16.png )
 
 # Siren
 Siren is a rewrite of SDF_Path using NQADE
