@@ -3,12 +3,12 @@
 bool engine::MainLoop () {
 	ZoneScoped;
 
-	HandleEvents();					// handle keyboard / mouse events
 	Render();						// update display texture and show it
 	Postprocess();					// gamma, tonemapping, etc
 	BlitToScreen();					// fullscreen triangle copying the displayTexture to the screen
 	ImguiPass();					// do all the gui stuff
 	SDL_GL_SwapWindow( window );	// show what has just been drawn to the back buffer ( displayTexture + ImGui )
+	HandleEvents();					// handle keyboard / mouse events
 	FrameMark;						// tells tracy that this is the end of a frame
 	return pQuit;					// break main loop when pQuit turns true
 }
@@ -124,6 +124,7 @@ void engine::PathtraceUniformUpdate() {
 	ZoneScoped;
 
 	// core
+	glUniform2i( glGetUniformLocation( pathtraceShader, "tileOffset" ), 0, 0 );
 	glUniform2i( glGetUniformLocation( pathtraceShader, "noiseOffset" ), core.noiseOffset.x, core.noiseOffset.y );
 	glUniform1i( glGetUniformLocation( pathtraceShader, "maxSteps" ), core.maxSteps );
 	glUniform1i( glGetUniformLocation( pathtraceShader, "maxBounces" ), core.maxBounces );

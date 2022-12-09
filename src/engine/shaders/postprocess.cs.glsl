@@ -37,9 +37,9 @@ void main() {
 	//	- depth fog
 
 	//	- tonemapping
-	toStore.xyz = tonemap( tonemapMode, toStore.xyz );
+	toStore.rgb = tonemap( tonemapMode, toStore.rgb );
 
 	//	- dithering
 
-	imageStore( display, location, uvec4( toStore.xyz * 255.0, 255 ) );
+	imageStore( display, location, uvec4( toStore.rgb * 255.0, 255 ) );
 }

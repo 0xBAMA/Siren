@@ -4,4 +4,5 @@ uniform vec2 resolution;
 out vec4 fragmentOutput;
 void main() {
 	fragmentOutput = texture( current, gl_FragCoord.xy / resolution );
+	fragmentOutput.a = 1.0f;
 }
