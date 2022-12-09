@@ -151,8 +151,8 @@ float deLens ( vec3 p ) {
 	float sphere1 = distance( pRot, vec3( 0.0f, center1, 0.0f ) ) - lensRadius1;
 	float sphere2 = distance( pRot, vec3( 0.0f, center2, 0.0f ) ) - lensRadius2;
 
-	// dFinal = fOpIntersectionRound( sphere1, sphere2, 0.03 );
-	dFinal = max( sphere1, sphere2 );
+	dFinal = fOpIntersectionRound( sphere1, sphere2, 0.03 );
+	// dFinal = max( sphere1, sphere2 );
 	return dFinal * lensScaleFactor;
 }
 
@@ -160,91 +160,22 @@ float dePlane ( vec3 p, vec3 normal, float distanceFromOrigin ) {
 	return dot( p, normal ) + distanceFromOrigin;
 }
 
-//sphere inversion
-bool SI = false;
-vec3 InvCenter = vec3( 0.0f, 1.0f, 1.0f );
-float rad = 0.8f;
-vec2 box_size = vec2( -0.40445f, 0.34f ) * 2.0f;
-vec2 wrap ( vec2 x, vec2 a, vec2 s ) {
-	x -= s;
-	return ( x - a * floor( x / a ) ) + s;
-}
-void TransA ( inout vec3 z, inout float DF, float a, float b ) {
-	float iR = 1.0f / dot( z, z );
-	z *= -iR;
-	z.x = -b - z.x;
-	z.y = a + z.y;
-	DF *= iR;//max(1.,iR);
-}
-float deLoopy ( vec3 p ) {
-	p = p.yzx;
-	float adjust = 6.28f; // use this for time varying behavior
-	float box_size_x = 1.0f;
-	float box_size_z = 1.0f;
-	float KleinR = 1.95859103011179f;
-	float KleinI = 0.0112785606117658f;
-	vec3 lz = p + vec3( 1.0f ), llz = p + vec3( -1.0f );
-	float d = 0.0f; float d2 = 0.0f;
-	vec3 InvCenter = vec3( 1.0f, 1.0f, 0.0f );
-	float rad = 0.8f;
-	p = p - InvCenter;
-	d = length( p );
-	d2 = d * d;
-	p = ( rad * rad / d2 ) * p + InvCenter;
-	float DE = 1e10f;
-	float DF = 1.0f;
-	float a = KleinR;
-	float b = KleinI;
-	float f = sign( b ) * 1.0f;
-	for ( int i = 0; i < 69; i++ ) {
-		p.x = p.x + b / a * p.y;
-		p.xz = wrap( p.xz, vec2( 2.0f * box_size_x, 2.0f * box_size_z ), vec2( -box_size_x, - box_size_z ) );
-		p.x = p.x - b / a * p.y;
-		if ( p.y >= a * 0.5f + f *( 2.0f * a - 1.95f ) / 4.0f * sign( p.x + b * 0.5f ) * ( 1.0f - exp( -( 7.2f - ( 1.95f - a ) * 15.0f )* abs( p.x + b * 0.5f ) ) ) ) {
-			p = vec3( -b, a, 0.0f ) - p; //If above the separation line, rotate by 180° about (-b/2, a/2)
-		}
-		TransA( p, DF, a, b ); //Apply transformation a
-		if ( dot( p - llz, p - llz ) < 1e-5f ) {
-			break; //If the iterated points enters a 2-cycle , bail out.
-		}
-		llz = lz; lz = p; //Store previous iterates
-	}
-	float y = min( p.y, a-p.y );
-	DE = min( DE, min( y, 0.3f ) / max( DF, 2.0f ) );
-	DE = DE * d2 / ( rad + d * DE );
-	return DE;
-}
-
-mat3 rotZ ( float t ) {
-	float s = sin( t );
-	float c = cos( t );
-	return mat3( c, s, 0.0f, -s, c, 0.0f, 0.0f, 0.0f, 1.0f );
-}
-mat3 rotX ( float t ) {
-	float s = sin( t );
-	float c = cos( t );
-	return mat3( 1.0f, 0.0f, 0.0f, 0.0f, c, s, 0.0f, -s, c );
-}
-mat3 rotY ( float t ) {
-	float s = sin( t );
-	float c = cos( t );
-	return mat3( c, 0.0f, -s, 0.0f, 1.0f, 0.0f, s, 0.0f, c );
-}
-float deBowl ( vec3 p ) {
-	p = rotY( PI / 2.0f ) * p;
-	p = rotZ( PI / 2.0f ) * p;
-	// vec2 rm = radians( 360.0f ) * vec2( 0.468359f, 0.95317f ); // vary x,y 0.0 - 1.0
-	vec2 rm = radians( 360.0f ) * vec2( 0.468359f, 0.9717f ); // vary x,y 0.0 - 1.0
-	mat3 scene_mtx = rotX( rm.x ) * rotY( rm.x ) * rotZ( rm.x ) * rotX( rm.y );
-	float scaleAccum = 1.;
-	for ( int i = 0; i < 24; ++i ) {
-		p.yz = sqrt( p.yz * p.yz + 0.16406f );
-		p *= 1.21f;
-		scaleAccum *= 1.21f;
-		p -= vec3( 2.43307f, 5.28488f, 0.9685f );
-		p = scene_mtx * p;
-	}
-	return length( p ) / scaleAccum - 0.15f;
+float deF ( vec3 p ) {
+	float s = 2.0f;
+	float e = 0.0f;
+	for ( int j = 0; ++j < 7; )
+		p.xz = abs( p.xz ) - 2.3f,
+		p.z > p.x ? p = p.zyx : p,
+		p.z = 1.5f - abs( p.z - 1.3f + sin( p.z ) * 0.2f ),
+		p.y > p.x ? p = p.yxz : p,
+		p.x = 3.0f - abs( p.x - 5.0f + sin( p.x * 3.0f ) * 0.2f ),
+		p.y > p.x ? p = p.yxz : p,
+		p.y = 0.9f - abs( p.y - 0.4f ),
+		e = 12.0f * clamp( 0.3 / min( dot( p, p ), 1.0f ), 0.0f, 1.0f ) +
+		2.0f * clamp( 0.1 / min( dot( p, p ), 1.0f ), 0.0f, 1.0f ),
+		p = e * p - vec3( 7.0f, 1.0f, 1.0f ),
+		s *= e;
+	return length(p)/s;
 }
 
 // surface distance estimate for the whole scene
@@ -280,7 +211,8 @@ float de ( vec3 p ) {
 	}
 
 	// fractal object
-	float dFractal = 0.05f * deBowl( ( p / 0.05f ) - vec3( 0.0f, 1.0f, 2.0f ) );
+	// float dFractal = 0.05f * deF( ( p / 0.05f ) - vec3( 0.0f, 1.0f, 2.0f ) );
+	float dFractal = 0.05f * deF( p / 0.05f );
 	sceneDist = min( dFractal, sceneDist );
 	if ( sceneDist == dFractal && dFractal <= epsilon ) {
 		hitpointColor = metallicDiffuse;
