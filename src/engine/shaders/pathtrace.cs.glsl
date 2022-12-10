@@ -212,7 +212,8 @@ float de ( vec3 p ) {
 
 	// fractal object
 	// float dFractal = 0.05f * deF( ( p / 0.05f ) - vec3( 0.0f, 1.0f, 2.0f ) );
-	float dFractal = 0.05f * deF( p / 0.05f );
+	// float dFractal = 0.05f * deF( p / 0.05f );
+	float dFractal = 0.05f * deF( rotate3D( 0.8f, vec3( 1.0f ) ) * p / 0.05f );
 	sceneDist = min( dFractal, sceneDist );
 	if ( sceneDist == dFractal && dFractal <= epsilon ) {
 		hitpointColor = metallicDiffuse;

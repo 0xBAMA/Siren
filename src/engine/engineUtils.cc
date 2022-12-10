@@ -289,8 +289,8 @@ void engine::ImguiPass () {
 			ImGui::SliderFloat( "Raymarch Epsilon", &core.epsilon, 0.0001f, 0.1f, "%.4f", ImGuiSliderFlags_Logarithmic ); UPDATECHECK;
 			ImGui::Separator();
 			ImGui::SliderFloat( "Exposure", &core.exposure, 0.1f, 3.6f );
-			ImGui::SliderFloat( "Thin Lens Focus Distance", &core.focusDistance, 0.0f, 8.0f, "%.3f", ImGuiSliderFlags_Logarithmic ); UPDATECHECK;
-			ImGui::SliderFloat( "Thin Lens Effect Intensity", &core.thinLensIntensity, 0.0f, 1.0f, "%.3f", ImGuiSliderFlags_Logarithmic ); UPDATECHECK;
+			ImGui::SliderFloat( "Thin Lens Focus Distance", &core.focusDistance, 0.0f, 8.0f, "%.3f", ImGuiSliderFlags_Logarithmic );
+			ImGui::SliderFloat( "Thin Lens Effect Intensity", &core.thinLensIntensity, 0.0f, 1.0f, "%.3f", ImGuiSliderFlags_Logarithmic );
 			ImGui::Separator();
 			ImGui::SliderInt( "SDF Normal Method", &core.normalMethod, 1, 3 ); UPDATECHECK; // only the first one really works correctly, maybe remove this
 			ImGui::SliderFloat( "Field of View", &core.FoV, 0.01f, 2.5f, "%.3f", ImGuiSliderFlags_Logarithmic ); UPDATECHECK;
@@ -298,9 +298,10 @@ void engine::ImguiPass () {
 			ImGui::SliderFloat( "Viewer X", &core.viewerPosition.x, -20.0f, 20.0f ); UPDATECHECK;
 			ImGui::SliderFloat( "Viewer Y", &core.viewerPosition.y, -20.0f, 20.0f ); UPDATECHECK;
 			ImGui::SliderFloat( "Viewer Z", &core.viewerPosition.z, -20.0f, 20.0f ); UPDATECHECK;
-
-			// have it tell what the current set of basis vectors is
-
+			ImGui::Text( "Basis Vectors: " );
+			ImGui::Text( " X: %.3f %.3f %.3f", core.basisX.x, core.basisX.y, core.basisX.z );
+			ImGui::Text( " Y: %.3f %.3f %.3f", core.basisY.x, core.basisY.y, core.basisY.z );
+			ImGui::Text( " Z: %.3f %.3f %.3f", core.basisZ.x, core.basisZ.y, core.basisZ.z );
 			ImGui::EndTabItem();
 		}
 		if ( ImGui::BeginTabItem( " Lens / Model " ) ) {
