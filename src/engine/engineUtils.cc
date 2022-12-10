@@ -230,6 +230,7 @@ void engine::ImguiPass () {
 
 	// shorthand for below
 	#define UPDATECHECK host.rendererRequiresUpdate=host.rendererRequiresUpdate||ImGui::IsItemEdited()
+	#define UPDATECHECK_C if(host.currentMode!=renderMode::pathtrace){host.rendererRequiresUpdate=host.rendererRequiresUpdate||ImGui::IsItemEdited();}
 
 	ImguiFrameStart();						// start the imgui frame
 	if ( false ) ImGui::ShowDemoWindow();	// show the demo window
@@ -289,8 +290,8 @@ void engine::ImguiPass () {
 			ImGui::SliderFloat( "Raymarch Epsilon", &core.epsilon, 0.0001f, 0.1f, "%.4f", ImGuiSliderFlags_Logarithmic ); UPDATECHECK;
 			ImGui::Separator();
 			ImGui::SliderFloat( "Exposure", &core.exposure, 0.1f, 3.6f );
-			ImGui::SliderFloat( "Thin Lens Focus Distance", &core.focusDistance, 0.0f, 8.0f, "%.3f", ImGuiSliderFlags_Logarithmic );
-			ImGui::SliderFloat( "Thin Lens Effect Intensity", &core.thinLensIntensity, 0.0f, 1.0f, "%.3f", ImGuiSliderFlags_Logarithmic );
+			ImGui::SliderFloat( "Thin Lens Focus Distance", &core.focusDistance, 0.0f, 8.0f, "%.3f", ImGuiSliderFlags_Logarithmic ); UPDATECHECK_C;
+			ImGui::SliderFloat( "Thin Lens Effect Intensity", &core.thinLensIntensity, 0.0f, 1.0f, "%.3f", ImGuiSliderFlags_Logarithmic );UPDATECHECK_C;
 			ImGui::Separator();
 			ImGui::SliderInt( "SDF Normal Method", &core.normalMethod, 1, 3 ); UPDATECHECK; // only the first one really works correctly, maybe remove this
 			ImGui::SliderFloat( "Field of View", &core.FoV, 0.01f, 2.5f, "%.3f", ImGuiSliderFlags_Logarithmic ); UPDATECHECK;

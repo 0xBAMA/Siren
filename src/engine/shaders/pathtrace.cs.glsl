@@ -160,22 +160,40 @@ float dePlane ( vec3 p, vec3 normal, float distanceFromOrigin ) {
 	return dot( p, normal ) + distanceFromOrigin;
 }
 
+// float deF ( vec3 p ) {
+// 	float s = 2.0f;
+// 	float e = 0.0f;
+// 	for ( int j = 0; ++j < 7; )
+// 		p.xz = abs( p.xz ) - 2.3f,
+// 		p.z > p.x ? p = p.zyx : p,
+// 		p.z = 1.5f - abs( p.z - 1.3f + sin( p.z ) * 0.2f ),
+// 		p.y > p.x ? p = p.yxz : p,
+// 		p.x = 3.0f - abs( p.x - 5.0f + sin( p.x * 3.0f ) * 0.2f ),
+// 		p.y > p.x ? p = p.yxz : p,
+// 		p.y = 0.9f - abs( p.y - 0.4f ),
+// 		e = 12.0f * clamp( 0.3 / min( dot( p, p ), 1.0f ), 0.0f, 1.0f ) +
+// 		2.0f * clamp( 0.1 / min( dot( p, p ), 1.0f ), 0.0f, 1.0f ),
+// 		p = e * p - vec3( 7.0f, 1.0f, 1.0f ),
+// 		s *= e;
+// 	return length(p)/s;
+// }
+
+mat2 rot2(in float a){ float c = cos(a), s = sin(a); return mat2(c, s, -s, c); }
 float deF ( vec3 p ) {
-	float s = 2.0f;
-	float e = 0.0f;
-	for ( int j = 0; ++j < 7; )
-		p.xz = abs( p.xz ) - 2.3f,
-		p.z > p.x ? p = p.zyx : p,
-		p.z = 1.5f - abs( p.z - 1.3f + sin( p.z ) * 0.2f ),
-		p.y > p.x ? p = p.yxz : p,
-		p.x = 3.0f - abs( p.x - 5.0f + sin( p.x * 3.0f ) * 0.2f ),
-		p.y > p.x ? p = p.yxz : p,
-		p.y = 0.9f - abs( p.y - 0.4f ),
-		e = 12.0f * clamp( 0.3 / min( dot( p, p ), 1.0f ), 0.0f, 1.0f ) +
-		2.0f * clamp( 0.1 / min( dot( p, p ), 1.0f ), 0.0f, 1.0f ),
-		p = e * p - vec3( 7.0f, 1.0f, 1.0f ),
-		s *= e;
-	return length(p)/s;
+	float d = 1e5;
+	const int n = 3;
+	const float fn = float(n);
+	for(int i = 0; i < n; i++){
+		vec3 q = p;
+		float a = float(i)*fn*2.422; //*6.283/fn
+		a *= a;
+		q.z += float(i)*float(i)*1.67; //*3./fn
+		q.xy *= rot2(a);
+		float b = (length(length(sin(q.xy) + cos(q.yz))) - .15);
+		float f = max(0., 1. - abs(b - d));
+		d = min(d, b) - .25*f*f;
+	}
+	return d;
 }
 
 // surface distance estimate for the whole scene
@@ -213,7 +231,8 @@ float de ( vec3 p ) {
 	// fractal object
 	// float dFractal = 0.05f * deF( ( p / 0.05f ) - vec3( 0.0f, 1.0f, 2.0f ) );
 	// float dFractal = 0.05f * deF( p / 0.05f );
-	float dFractal = 0.05f * deF( rotate3D( 0.8f, vec3( 1.0f ) ) * p / 0.05f );
+	// float dFractal = 0.05f * deF( rotate3D( 0.8f, vec3( 1.0f ) ) * p / 0.05f );
+	float dFractal = 0.05f * deF( rotate3D( 0.8f, vec3( 1.0f ) ) * p / 0.1f );
 	sceneDist = min( dFractal, sceneDist );
 	if ( sceneDist == dFractal && dFractal <= epsilon ) {
 		hitpointColor = metallicDiffuse;
