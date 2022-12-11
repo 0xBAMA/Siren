@@ -14,6 +14,10 @@ uniform float depthScale; 	// scalar for depth term, when computing depth effect
 uniform float gamma; 		// gamma correction term for the color result
 uniform int displayType; 	// mode selector - show normals, show depth, show color, show postprocessed version
 
+#define COLOR	0
+#define NORMAL	1
+#define DEPTH	2
+
 #include "tonemap.glsl"
 
 vec3 gammaCorrect ( vec3 col ) {
@@ -23,23 +27,30 @@ vec3 gammaCorrect ( vec3 col ) {
 void main() {
 	// this isn't done in tiles - it may need to be, for when rendering larger resolution screenshots - tbd
 	ivec2 location = ivec2( gl_GlobalInvocationID.xy );
+	vec4 toStore;
 
-	// Color comes in at 32-bit per channel precision
-	vec4 toStore = imageLoad( accumulatorColor, location );
-	toStore.rgb = gammaCorrect( toStore.rgb );
+	// color, normal, depth values come in at 32-bit per channel precision
+	switch ( displayType ) {
+		case COLOR:
+			toStore = imageLoad( accumulatorColor, location );
+			toStore.rgb = gammaCorrect( toStore.rgb );
+			toStore.rgb = tonemap( tonemapMode, toStore.rgb );
+			break;
+		case NORMAL:
+			toStore = imageLoad( accumulatorNormal, location );
+			toStore.a = 1.0f;
+			break;
+		case DEPTH:
+			toStore = vec4( 1.0f / imageLoad( accumulatorNormal, location ).a );
+			toStore.a = 1.0f;
+			break;
+	}
 
-	// RGB is normal, A is depth value, 32-bit per channel - these are currently unpopulated
-	// vec4 normalAndDepth = imageLoad( accumulatorNormal, location );
-
-// do any postprocessing work, store back in display texture
+// do any other postprocessing work, store back in display texture
 	// this is things like:
+		// - depth fog
+		// - dithering
 
-	//	- depth fog
-
-	//	- tonemapping
-	toStore.rgb = tonemap( tonemapMode, toStore.rgb );
-
-	//	- dithering
-
+	// storing back as LDR 8-bits per channel RGB for output
 	imageStore( display, location, uvec4( toStore.rgb * 255.0, 255 ) );
 }

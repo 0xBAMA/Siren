@@ -232,7 +232,8 @@ float de ( vec3 p ) {
 	// float dFractal = 0.05f * deF( ( p / 0.05f ) - vec3( 0.0f, 1.0f, 2.0f ) );
 	// float dFractal = 0.05f * deF( p / 0.05f );
 	// float dFractal = 0.05f * deF( rotate3D( 0.8f, vec3( 1.0f ) ) * p / 0.05f );
-	float dFractal = 0.05f * deF( rotate3D( 0.8f, vec3( 1.0f ) ) * p / 0.1f );
+	// float dFractal = 0.05f * deF( rotate3D( 0.8f, vec3( 1.0f ) ) * p / 0.1f );
+	float dFractal = 0.05f * deF( rotate3D( 0.8f, vec3( 1.0f ) ) * p );
 	sceneDist = min( dFractal, sceneDist );
 	if ( sceneDist == dFractal && dFractal <= epsilon ) {
 		hitpointColor = metallicDiffuse;
@@ -481,12 +482,12 @@ vec2 getRandomOffset ( int n ) {
 	#endif
 }
 
-// void storeNormalAndDepth ( vec3 normal, float depth ) {
-// 	// blend with history and imageStore
-// 	vec4 prevResult = imageLoad( accumulatorNormalsAndDepth, location );
-// 	vec4 blendResult = mix( prevResult, vec4( normal, depth ), 1.0f / sampleCount );
-// 	imageStore( accumulatorNormalsAndDepth, location, blendResult );
-// }
+void storeNormalAndDepth ( vec3 normal, float depth ) {
+	// blend with history and imageStore
+	vec4 prevResult = imageLoad( accumulatorNormalsAndDepth, location );
+	vec4 blendResult = mix( prevResult, vec4( normal, depth ), 1.0f / sampleCount );
+	imageStore( accumulatorNormalsAndDepth, location, blendResult );
+}
 
 vec3 pathtraceSample ( ivec2 location, int n ) {
 	vec3  cResult = vec3( 0.0f );
@@ -521,8 +522,8 @@ vec3 pathtraceSample ( ivec2 location, int n ) {
 			rayDirection = normalize( focuspoint - rayOrigin );
 
 			// get depth and normals - think about special handling for refractive hits
-			// float distanceToFirstHit = raymarch( rayOrigin, rayDirection );
-			// storeNormalAndDepth( normal( rayOrigin + distanceToFirstHit * rayDirection ), distanceToFirstHit );
+			float distanceToFirstHit = raymarch( rayOrigin, rayDirection );
+			storeNormalAndDepth( normal( rayOrigin + distanceToFirstHit * rayDirection ), distanceToFirstHit );
 
 			// get the result for a ray
 			cResult += colorSample( rayOrigin, rayDirection );
