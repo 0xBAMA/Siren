@@ -207,60 +207,16 @@ float dePlane ( vec3 p, vec3 normal, float distanceFromOrigin ) {
 // 	return length( p ) / s;
 // }
 
-vec3 pmin ( vec3 a, vec3 b, vec3 k ) {
-  vec3 h = clamp( 0.5 + 0.5 * ( b - a ) / k, 0.0, 1.0 );
-  return mix( b, a, h ) - k * h * ( 1.0 - h );
+float deF ( vec3 p ) {
+	float e,v,u = 0.0f;
+	e = v = 2.0f;
+	for(int j=0;j++<12;j>3?e=min(e,length(p.xz+length(p)/u*0.55f)/v-0.006f),p.xz=abs(p.xz)-0.7f,p:p=abs(p)-0.86f)
+		v /= u = dot( p, p ),
+		p /= u,
+		p.y = 1.7f - p.y;
+	return e;
 }
-void sphere_fold ( inout vec3 z, inout float dz ) {
-  const float fixed_radius2 = 1.9;
-  const float min_radius2 = 0.5;
-  float r2 = dot( z, z );
-  if ( r2 < min_radius2 ) {
-    float temp = ( fixed_radius2 / min_radius2 );
-    z *= temp;
-    dz *= temp;
-  } else if ( r2 < fixed_radius2 ) {
-    float temp = ( fixed_radius2 / r2 );
-    z *= temp;
-    dz *= temp;
-  }
-}
-void box_fold(float k, inout vec3 z, inout float dz) {
-  vec3 zz = sign( z ) * pmin( abs( z ), vec3( 1.0 ), vec3( k ) );
-  z = zz * 2.0 - z;
-}
-float sphere ( vec3 p, float t ) {
-  return length( p ) - t;
-}
-float boxf ( vec3 p, vec3 b, float e ) {
-  p = abs( p ) - b;
-  vec3 q = abs( p + e ) - e;
-  return min( min(
-    length( max( vec3( p.x, q.y, q.z ), 0.0 ) ) + min( max( p.x, max( q.y, q.z ) ), 0.0 ),
-    length( max( vec3( q.x, p.y, q.z ), 0.0 ) ) + min( max( q.x, max( p.y, q.z ) ), 0.0 ) ),
-    length( max( vec3( q.x, q.y, p.z ), 0.0 ) ) + min( max( q.x, max( q.y, p.z ) ), 0.0 ) );
-}
-float deF ( vec3 z ) {
-  const float scale = -2.8;
-  vec3 offset = z;
-  float dr = 1.0;
-  float fd = 0.0;
-  const float k = 0.05;
-  for ( int n = 0; n < 5; ++n ) {
-    box_fold( k / dr, z, dr );
-    sphere_fold( z, dr );
-    z = scale * z + offset;
-    dr = dr * abs( scale ) + 1.0;
-    float r1 = sphere( z, 5.0 );
-    float r2 = boxf( z, vec3( 5.0 ), 0.5 );
-    float r = n < 4 ? r2 : r1;
-    float dd = r / abs( dr );
-    if ( n < 3 || dd < fd ) {
-      fd = dd;
-    }
-  }
-  return fd;
-}
+
 
 // surface distance estimate for the whole scene
 float de ( vec3 p ) {
@@ -584,7 +540,7 @@ vec3 pathtraceSample ( ivec2 location, int n ) {
 				// this is a small adjustment to the ray origin and direction - not working correctly - need to revist this
 			vec3 focuspoint = rayOrigin + ( ( rayDirection * focusDistance ) / dot( rayDirection, basisZ ) );
 			vec2 diskOffset = thinLensIntensity * randomInUnitDisk();
-			// rayOrigin += diskOffset.x * basisX + diskOffset.y * basisY + thinLensIntensity * normalizedRandomFloat() * basisZ;
+			// rayOrigin += diskOffset.x * basisX + diskOffset.y * basisY + thinLensIntensity * normalizedRandomFloat() * basisZ; // noticing very little difference adding this additional z jitter
 			rayOrigin += diskOffset.x * basisX + diskOffset.y * basisY;
 			rayDirection = normalize( focuspoint - rayOrigin );
 

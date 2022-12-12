@@ -389,8 +389,12 @@ void engine::ImguiPass () {
 		ImGui::Text( "  Current Sample Count: %d", host.fullscreenPasses );
 		ImGui::SameLine();
 		auto tCurrent = std::chrono::high_resolution_clock::now();
-		auto runTime = static_cast<long int>( std::chrono::duration_cast< std::chrono::seconds >( tCurrent - host.tSamplingStart ).count() );
-		ImGui::Text( " %ld seconds",  runTime );
+		long int runTime = static_cast<long int>( std::chrono::duration_cast< std::chrono::seconds >( tCurrent - host.tSamplingStart ).count() );
+		int seconds = runTime % 60;
+		int minutes = ( runTime / 60 ) % 60;
+		int hours = ( runTime / 3600 );
+
+		ImGui::Text( " - after %d hours, %d minutes, %d seconds", hours, minutes, seconds );
 	}
 
 	// finished with the settings window
