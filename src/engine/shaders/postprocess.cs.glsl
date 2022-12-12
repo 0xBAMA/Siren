@@ -29,27 +29,32 @@ void main() {
 	ivec2 location = ivec2( gl_GlobalInvocationID.xy );
 	vec4 toStore;
 
+	vec4 color = imageLoad( accumulatorColor, location );
+	vec4 normalAndDepth = imageLoad( accumulatorNormal, location );
+
 	// color, normal, depth values come in at 32-bit per channel precision
 	switch ( displayType ) {
 		case COLOR:
-			toStore = imageLoad( accumulatorColor, location );
+			toStore.rgb = color.rgb;
 			toStore.rgb = gammaCorrect( toStore.rgb );
 			toStore.rgb = tonemap( tonemapMode, toStore.rgb );
+			// do any other postprocessing work
+			//	this is things like:
+			//		- denoising? tbd
+			//		- depth fog
+			//		- dithering
 			break;
 		case NORMAL:
-			toStore = imageLoad( accumulatorNormal, location );
-			toStore.a = 1.0f;
+			toStore.rgb = normalAndDepth.xyz;
 			break;
 		case DEPTH:
-			toStore = vec4( 1.0f / imageLoad( accumulatorNormal, location ).a );
-			toStore.a = 1.0f;
+			toStore.rgb = vec3( 1.0f / normalAndDepth.a );
 			break;
 	}
 
-// do any other postprocessing work, store back in display texture
-	// this is things like:
-		// - depth fog
-		// - dithering
+	// all cases take 1.0f alpha
+	toStore.a = 1.0f;
+
 
 	// storing back as LDR 8-bits per channel RGB for output
 	imageStore( display, location, uvec4( toStore.rgb * 255.0, 255 ) );

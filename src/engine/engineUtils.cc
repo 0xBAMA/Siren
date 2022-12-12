@@ -334,6 +334,13 @@ void engine::ImguiPass () {
 			ImGui::SliderFloat( "Fog Depth Scalar", &post.depthScale, 0.01f, 10.0f );
 			ImGui::SliderFloat( "Gamma Correction", &post.gamma, 0.01f, 3.0f );
 			ImGui::SliderInt( "Display Type", &post.displayType, 0, 2 );
+			ImGui::SameLine();
+			switch ( post.displayType ) {
+				case 0: ImGui::Text( "Color" ); break;
+				case 1: ImGui::Text( "Normal" ); break;
+				case 2: ImGui::Text( "Depth" ); break;
+				default: break;
+			}
 			ImGui::EndTabItem();
 		}
 		ImGui::EndTabBar();

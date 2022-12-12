@@ -178,22 +178,33 @@ float dePlane ( vec3 p, vec3 normal, float distanceFromOrigin ) {
 // 	return length(p)/s;
 // }
 
-mat2 rot2(in float a){ float c = cos(a), s = sin(a); return mat2(c, s, -s, c); }
-float deF ( vec3 p ) {
-	float d = 1e5;
-	const int n = 3;
-	const float fn = float(n);
-	for(int i = 0; i < n; i++){
-		vec3 q = p;
-		float a = float(i)*fn*2.422; //*6.283/fn
-		a *= a;
-		q.z += float(i)*float(i)*1.67; //*3./fn
-		q.xy *= rot2(a);
-		float b = (length(length(sin(q.xy) + cos(q.yz))) - .15);
-		float f = max(0., 1. - abs(b - d));
-		d = min(d, b) - .25*f*f;
-	}
-	return d;
+// mat2 rot2(in float a){ float c = cos(a), s = sin(a); return mat2(c, s, -s, c); }
+// float deF ( vec3 p ) {
+// 	float d = 1e5;
+// 	const int n = 3;
+// 	const float fn = float(n);
+// 	for(int i = 0; i < n; i++){
+// 		vec3 q = p;
+// 		float a = float(i)*fn*2.422; //*6.283/fn
+// 		a *= a;
+// 		q.z += float(i)*float(i)*1.67; //*3./fn
+// 		q.xy *= rot2(a);
+// 		float b = (length(length(sin(q.xy) + cos(q.yz))) - .15);
+// 		float f = max(0., 1. - abs(b - d));
+// 		d = min(d, b) - .25*f*f;
+// 	}
+// 	return d;
+// }
+
+float deF(vec3 p){
+  p=fract(p)-.5;
+  float s=3., l;
+  for(int j=0;j++<8;)
+	p=abs(p),
+	p=p.x<p.y?p.zxy:p.zyx,
+	s*=l=2./min(dot(p,p),1.),
+	p=p*l-vec3(.2,1,4);
+  return length(p)/s;
 }
 
 // surface distance estimate for the whole scene
@@ -231,9 +242,9 @@ float de ( vec3 p ) {
 	// fractal object
 	// float dFractal = 0.05f * deF( ( p / 0.05f ) - vec3( 0.0f, 1.0f, 2.0f ) );
 	// float dFractal = 0.05f * deF( p / 0.05f );
-	// float dFractal = 0.05f * deF( rotate3D( 0.8f, vec3( 1.0f ) ) * p / 0.05f );
+	float dFractal = 0.05f * deF( rotate3D( 0.8f, vec3( 1.0f ) ) * p / 0.05f );
 	// float dFractal = 0.05f * deF( rotate3D( 0.8f, vec3( 1.0f ) ) * p / 0.1f );
-	float dFractal = 0.05f * deF( rotate3D( 0.8f, vec3( 1.0f ) ) * p );
+	// float dFractal = 0.05f * deF( rotate3D( 0.8f, vec3( 1.0f ) ) * p );
 	sceneDist = min( dFractal, sceneDist );
 	if ( sceneDist == dFractal && dFractal <= epsilon ) {
 		hitpointColor = metallicDiffuse;
@@ -521,9 +532,9 @@ vec3 pathtraceSample ( ivec2 location, int n ) {
 			rayOrigin += diskOffset.x * basisX + diskOffset.y * basisY + thinLensIntensity * normalizedRandomFloat() * basisZ;
 			rayDirection = normalize( focuspoint - rayOrigin );
 
-			// get depth and normals - think about special handling for refractive hits
+			// get depth and normals - think about special handling for refractive hits, maybe consider total distance traveled after all bounces?
 			float distanceToFirstHit = raymarch( rayOrigin, rayDirection );
-			storeNormalAndDepth( normal( rayOrigin + distanceToFirstHit * rayDirection ), distanceToFirstHit );
+			storeNormalAndDepth( normal( rayOrigin + distanceToFirstHit * rayDirection ), distanceToFirstHit ); // storing bad results, revisit
 
 			// get the result for a ray
 			cResult += colorSample( rayOrigin, rayDirection );
