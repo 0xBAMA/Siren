@@ -156,6 +156,8 @@ struct hostParameters {
 	// this stuff is still WIP
 	// int screenshotDim = WIDTH; 					// width of the screenshot - the code maintains the aspect ratio of HEIGHT/WIDTH
 	// int numSamplesScreenshot = 128; 				// how many samples to take when rendering the screenshot
+
+	std::chrono::time_point< std::chrono::high_resolution_clock > tSamplingStart = std::chrono::high_resolution_clock::now();
 };
 
 struct coreParameters {

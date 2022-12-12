@@ -223,6 +223,8 @@ void engine::ResetAccumulators () {
 	glMemoryBarrier( GL_SHADER_IMAGE_ACCESS_BARRIER_BIT );
 	host.fullscreenPasses = 0; // reset sample count
 	cout << "Accumulator Buffer has been reinitialized" << endl;
+
+	host.tSamplingStart = std::chrono::high_resolution_clock::now();
 }
 
 void engine::ImguiPass () {
@@ -385,6 +387,10 @@ void engine::ImguiPass () {
 		ImGui::SetCursorPosX( 15 );
 		ImGui::PlotLines( " ", fpsValues, IM_ARRAYSIZE( fpsValues ), 0, fpsOverlay, -10.0f, 200.0f, ImVec2( ImGui::GetWindowSize().x - 30, 65 ) );
 		ImGui::Text( "  Current Sample Count: %d", host.fullscreenPasses );
+		ImGui::SameLine();
+		auto tCurrent = std::chrono::high_resolution_clock::now();
+		auto runTime = static_cast<long int>( std::chrono::duration_cast< std::chrono::seconds >( tCurrent - host.tSamplingStart ).count() );
+		ImGui::Text( " %ld seconds",  runTime );
 	}
 
 	// finished with the settings window
