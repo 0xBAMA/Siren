@@ -118,6 +118,23 @@ float fOpIntersectionRound ( float a, float b, float r ) {
 	return min( -r, max ( a, b ) ) + length( u );
 }
 
+float fOpIntersectionChamfer ( float a, float b, float r ) {
+	return max( max( a, b ), ( a + r + b ) * sqrt( 0.5f ) );
+}
+
+// Difference can be built from Intersection or Union:
+float fOpDifferenceChamfer ( float a, float b, float r ) {
+	return fOpIntersectionChamfer( a, -b, r );
+}
+
+// Repeat in one dimensions
+float pMod1 ( inout float p, float size ) {
+	float halfsize = size * 0.5f;
+	float c = floor( ( p + halfsize ) / size );
+	p = mod( p + halfsize, size ) - halfsize;
+	return c;
+}
+
 // Repeat in two dimensions
 vec2 pMod2 ( inout vec2 p, vec2 size ) {
 	vec2 c = floor( ( p + size * 0.5f ) / size );
@@ -150,9 +167,7 @@ float deLens ( vec3 p ) {
 	vec3 pRot = rotate3D( 0.1f * lensRotate, vec3( 1.0f ) ) * p;
 	float sphere1 = distance( pRot, vec3( 0.0f, center1, 0.0f ) ) - lensRadius1;
 	float sphere2 = distance( pRot, vec3( 0.0f, center2, 0.0f ) ) - lensRadius2;
-
-	dFinal = fOpIntersectionRound( sphere1, sphere2, 0.03 );
-	// dFinal = max( sphere1, sphere2 );
+	dFinal = fOpIntersectionRound( sphere1, sphere2, 0.03f );
 	return dFinal * lensScaleFactor;
 }
 
@@ -160,63 +175,30 @@ float dePlane ( vec3 p, vec3 normal, float distanceFromOrigin ) {
 	return dot( p, normal ) + distanceFromOrigin;
 }
 
-// float deF ( vec3 p ) {
-// 	float s = 2.0f;
-// 	float e = 0.0f;
-// 	for ( int j = 0; ++j < 7; )
-// 		p.xz = abs( p.xz ) - 2.3f,
-// 		p.z > p.x ? p = p.zyx : p,
-// 		p.z = 1.5f - abs( p.z - 1.3f + sin( p.z ) * 0.2f ),
-// 		p.y > p.x ? p = p.yxz : p,
-// 		p.x = 3.0f - abs( p.x - 5.0f + sin( p.x * 3.0f ) * 0.2f ),
-// 		p.y > p.x ? p = p.yxz : p,
-// 		p.y = 0.9f - abs( p.y - 0.4f ),
-// 		e = 12.0f * clamp( 0.3 / min( dot( p, p ), 1.0f ), 0.0f, 1.0f ) +
-// 		2.0f * clamp( 0.1 / min( dot( p, p ), 1.0f ), 0.0f, 1.0f ),
-// 		p = e * p - vec3( 7.0f, 1.0f, 1.0f ),
-// 		s *= e;
-// 	return length(p)/s;
-// }
-
-// mat2 rot2(in float a){ float c = cos(a), s = sin(a); return mat2(c, s, -s, c); }
-// float deF ( vec3 p ) {
-// 	float d = 1e5;
-// 	const int n = 3;
-// 	const float fn = float(n);
-// 	for(int i = 0; i < n; i++){
-// 		vec3 q = p;
-// 		float a = float(i)*fn*2.422; //*6.283/fn
-// 		a *= a;
-// 		q.z += float(i)*float(i)*1.67; //*3./fn
-// 		q.xy *= rot2(a);
-// 		float b = (length(length(sin(q.xy) + cos(q.yz))) - .15);
-// 		float f = max(0., 1. - abs(b - d));
-// 		d = min(d, b) - .25*f*f;
-// 	}
-// 	return d;
-// }
-
-// float deF ( vec3 p ) {
-// 	p = fract( p ) - 0.5f;
-// 	float s = 3.0f, l;
-// 	for ( int j = 0; j++ < 8; )
-// 		p = abs( p ),
-// 		p = p.x < p.y ? p.zxy : p.zyx,
-// 		s *= l = 2.0f / min( dot( p, p ), 1.0f ),
-// 		p = p * l - vec3( 0.2f, 1.0f, 4.0f );
-// 	return length( p ) / s;
-// }
-
-float deF ( vec3 p ) {
-	float e,v,u = 0.0f;
-	e = v = 2.0f;
-	for(int j=0;j++<12;j>3?e=min(e,length(p.xz+length(p)/u*0.55f)/v-0.006f),p.xz=abs(p.xz)-0.7f,p:p=abs(p)-0.86f)
-		v /= u = dot( p, p ),
-		p /= u,
-		p.y = 1.7f - p.y;
-	return e;
+float vmax ( vec3 v ) {
+	return max( max( v.x, v.y ), v.z );
 }
 
+float deBox ( vec3 p, vec3 b ) {
+	vec3 d = abs( p ) - b;
+	return length( max( d, vec3( 0.0f ) ) ) + vmax( min( d, vec3( 0 ) ) );
+}
+
+float deRoundedBox ( vec3 p, vec3 boxDims, float radius ){
+	return length( max( abs( p ) - boxDims, 0.0f ) ) - radius;
+}
+
+vec3 GetColorForTemperature ( float temperature ) {
+	mat3 m = ( temperature <= 6500.0f )
+			? mat3( vec3( 0.0f, -2902.1955373783176f, -8257.7997278925690f ),
+					vec3( 0.0f, 1669.5803561666639f, 2575.2827530017594f ),
+					vec3( 1.0f, 1.3302673723350029f, 1.8993753891711275f ) )
+			: mat3( vec3( 1745.0425298314172f, 1216.6168361476490f, -8257.7997278925690f ),
+					vec3( -2666.3474220535695f, -2173.1012343082230f, 2575.2827530017594f ),
+					vec3( 0.55995389139931482f, 0.70381203140554553f, 1.8993753891711275f ) );
+	return mix( clamp( vec3( m[ 0 ] / ( vec3( clamp( temperature, 1000.0f, 40000.0f ) ) + m[ 1 ] ) + m[ 2 ] ),
+		vec3( 0.0f ), vec3( 1.0f ) ), vec3( 1.0f ), smoothstep( 1000.0f, 0.0f, temperature ) );
+}
 
 // surface distance estimate for the whole scene
 float de ( vec3 p ) {
@@ -225,65 +207,73 @@ float de ( vec3 p ) {
 	float sceneDist = 1000.0f;
 	hitpointColor = vec3( 0.0f );
 
-	// cornell box
-	// red wall ( left )
-	float dRedWall = dePlane( p, vec3( 1.0f, 0.0f, 0.0f ), 10.0f );
-	sceneDist = min( dRedWall, sceneDist );
-	if ( sceneDist == dRedWall && dRedWall <= epsilon ) {
-		hitpointColor = redWallColor;
-		hitpointSurfaceType = DIFFUSE;
-	}
-
-	// green wall ( right )
-	float dGreenWall = dePlane( p, vec3( -1.0f, 0.0f, 0.0f ), 10.0f );
-	sceneDist = min( dGreenWall, sceneDist );
-	if ( sceneDist == dGreenWall && dGreenWall <= epsilon ) {
-		hitpointColor = greenWallColor;
-		hitpointSurfaceType = DIFFUSE;
-	}
-
-	// white walls ( front and back )
-	float dWhiteWalls = min( dePlane( p, vec3( 0.0f, 0.0f, 1.0f ), 20.0f ),  dePlane( p, vec3( 0.0f, 0.0f, -1.0f ), 20.0f ) );
-	sceneDist = min( dWhiteWalls, sceneDist );
-	if ( sceneDist == dWhiteWalls && dWhiteWalls <= epsilon ) {
+	// North, South, East, West walls
+	float dNorthWall = dePlane( p, vec3(  0.0f, 0.0f, -1.0f ), 24.0f );
+	float dSouthWall = dePlane( p, vec3(  0.0f, 0.0f, 1.0f ), 24.0f );
+	float dEastWall = dePlane( p, vec3( -1.0f,  0.0f, 0.0f ), 10.0f );
+	float dWestWall = dePlane( p, vec3( 1.0f,  0.0f, 0.0f ), 10.0f );
+	float dWalls = min( min( min( dNorthWall, dSouthWall ), dEastWall ), dWestWall );
+	sceneDist = min( dWalls, sceneDist );
+	if ( sceneDist == dWalls && dWalls < epsilon ) {
 		hitpointColor = whiteWallColor;
 		hitpointSurfaceType = DIFFUSE;
 	}
 
-	// fractal object
-	// float dFractal = 0.05f * deF( ( p / 0.05f ) - vec3( 0.0f, 1.0f, 2.0f ) );
-	// float dFractal = 0.05f * deF( p / 0.05f );
-	// float dFractal = 0.05f * deF( rotate3D( 0.8f, vec3( 1.0f ) ) * p / 0.05f );
-	// float dFractal = 0.05f * deF( rotate3D( 0.8f, vec3( 1.0f ) ) * p / 0.1f );
-	float dFractal = deF( rotate3D( 0.8f, vec3( 1.0f ) ) * p );
-	sceneDist = min( dFractal, sceneDist );
-	if ( sceneDist == dFractal && dFractal <= epsilon ) {
-		hitpointColor = metallicDiffuse;
-		hitpointSurfaceType = DIFFUSE;
-	}
-
-	// lens object
-	float dLens = ( enteringRefractive ? -1.0f : 1.0f ) * deLens( p );
-	sceneDist = min( dLens, sceneDist );
-	if ( sceneDist == dLens && dLens <= epsilon ) {
-		hitpointColor = vec3( 0.11f );
-		hitpointSurfaceType = REFRACTIVE;
-		enteringRefractive = !enteringRefractive;
-	}
-
-	// cieling and floor
-	float dFloorCieling = min( dePlane( p, vec3( 0.0f, -1.0f, 0.0f ), 10.0f ), dePlane( p, vec3( 0.0f, 1.0f, 0.0f ), 7.5f ) );
+	// floor and cieling
+	float dFloor = dePlane( p, vec3( 0.0f, 1.0f, 0.0f ), 4.0f );
+	float dCieling = dePlane( p, vec3( 0.0f, -1.0f, 0.0f ), 8.0f );
+	float dFloorCieling = min( dFloor, dCieling );
 	sceneDist = min( dFloorCieling, sceneDist );
-	if ( sceneDist == dFloorCieling && dFloorCieling <= epsilon ) {
+	if ( sceneDist == dFloorCieling && dFloorCieling < epsilon ) {
 		hitpointColor = floorCielingColor;
 		hitpointSurfaceType = DIFFUSE;
 	}
 
-	pMod2( p.xz, vec2( 2.0f ) );
-	float dLightBall = distance( p, vec3( 0.0f, 7.5f, 0.0f ) ) - 0.1618f;
-	sceneDist = min( dLightBall, sceneDist );
-	if ( sceneDist == dLightBall && dLightBall <= epsilon ) {
-		hitpointColor = vec3( 0.8f );
+	// balcony floor
+	float dEastBalcony = deBox( p - vec3( 10.0f, 0.0f, 0.0f ), vec3( 4.0f, 0.1f, 48.0f ) );
+	float dWestBalcony = deBox( p - vec3( -10.0f, 0.0f, 0.0f ), vec3( 4.0f, 0.1f, 48.0f ) );
+	float dBalconies = min( dEastBalcony, dWestBalcony );
+	sceneDist = min( dBalconies, sceneDist );
+	if ( sceneDist == dBalconies && dBalconies < epsilon ) {
+		hitpointColor = floorCielingColor;
+		hitpointSurfaceType = DIFFUSE;
+	}
+
+	// store point value before applying repeat
+	vec3 pCache = p;
+	pMod1( p.z, 8.0f );
+	pMod1( p.x, 14.0f );
+
+	float dArches = deBox( p - vec3( 0.0f, 4.9f, 0.0f ), vec3( 10.0f, 5.0f, 1.0f ) );
+	dArches = fOpDifferenceChamfer( dArches, deRoundedBox( p, vec3( 3.0f, 4.5f, 1.0f ), 3.0f ), 0.2f );
+	sceneDist = min( dArches, sceneDist );
+	if ( sceneDist == dArches && dArches < epsilon ) {
+		hitpointColor = floorCielingColor;
+		hitpointSurfaceType = DIFFUSE;
+	}
+
+	// revert to original point value
+	p = pCache;
+
+	// three light bars - neutral, cool, warm
+	float dCenterLightBar = deBox( p - vec3( 0.0f, 7.4f, 0.0f ), vec3( 1.0f, 0.1f, 24.0f ) );
+	sceneDist = min( dCenterLightBar, sceneDist );
+	if ( sceneDist == dCenterLightBar && dCenterLightBar <= epsilon ) {
+		hitpointColor = 0.1f * GetColorForTemperature( 6500.0f );
+		hitpointSurfaceType = EMISSIVE;
+	}
+
+	float dCoolLightBar = deBox( p - vec3( 7.5f, -0.4f, 0.0f ), vec3( 0.618f, 0.05f, 24.0f ) );
+	sceneDist = min( dCoolLightBar, sceneDist );
+	if ( sceneDist == dCoolLightBar && dCoolLightBar <= epsilon ) {
+		hitpointColor = 0.1f * GetColorForTemperature( 1000000.0f ); // we need to go bluer... tbd
+		hitpointSurfaceType = EMISSIVE;
+	}
+
+	float dWarmLightBar = deBox( p - vec3( -7.5f, -0.4f, 0.0f ), vec3( 0.618f, 0.05f, 24.0f ) );
+	sceneDist = min( dWarmLightBar, sceneDist );
+	if ( sceneDist == dWarmLightBar && dWarmLightBar <= epsilon ) {
+		hitpointColor = 0.1f * GetColorForTemperature( 800.0f );
 		hitpointSurfaceType = EMISSIVE;
 	}
 
@@ -372,6 +362,7 @@ float raymarch ( vec3 origin, vec3 direction ) {
 		if ( dTotal > maxDistance || abs( dQuery ) < epsilon ) {
 			break;
 		}
+		// certain chance to scatter in a random direction, per step - one of nameless' methods for fog
 	}
 	return dTotal;
 }
@@ -468,7 +459,6 @@ vec3 colorSample ( vec3 rayOrigin_in, vec3 rayDirection_in ) {
 				} else {
 					rayDirection = refract( normalize( rayDirection ), lensNorm, IoR );
 				}
-
 				break;
 
 			default:
@@ -483,7 +473,6 @@ vec3 colorSample ( vec3 rayOrigin_in, vec3 rayDirection_in ) {
 			throughput *= 1.0f / maxChannel;
 		}
 	}
-
 	return finalColor;
 }
 
