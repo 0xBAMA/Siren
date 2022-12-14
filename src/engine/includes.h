@@ -163,13 +163,13 @@ struct hostParameters {
 struct coreParameters {
 	glm::ivec2 tileOffset = glm::ivec2( 0, 0 ); 	// x, y of current tile
 	glm::ivec2 noiseOffset = glm::ivec2( 0, 0 );	// updated once a frame, offset blue noise texture so there isn't Voraldo's stroke pattern in v1.2
-	int maxSteps = 100;								// max raymarch steps
-	int maxBounces = 32;							// max pathtrace bounces
+	int maxSteps = 250;								// max raymarch steps
+	int maxBounces = 40;							// max pathtrace bounces
 	float maxDistance = 100.0f;						// max raymarch distance
 	float epsilon = 0.0001f;						// raymarch surface epsilon
-	float exposure = 0.98f;							// scale factor for the final color result
-	float focusDistance = 1.0f;						// used for the thin lens approximation ( include an intensity scalar to this as well ( resize jitter disk ) )
-	float thinLensIntensity = 0.1f;					// scales the disk offset for the thin lens approximation ( scales the intensity of the effect )
+	float exposure = 0.1f;							// scale factor for the final color result
+	float focusDistance = 5.0f;						// used for the thin lens approximation ( include an intensity scalar to this as well ( resize jitter disk ) )
+	float thinLensIntensity = 0.005f;				// scales the disk offset for the thin lens approximation ( scales the intensity of the effect )
 	int normalMethod = 1;							// method for calculating the surface normal for the SDF geometry
 	float FoV = 0.618f;								// FoV for the rendering - higher is wider
 	glm::vec3 viewerPosition = glm::vec3( 0.0f );	// location of the viewer

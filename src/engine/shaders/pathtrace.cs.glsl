@@ -142,6 +142,16 @@ vec2 pMod2 ( inout vec2 p, vec2 size ) {
 	return c;
 }
 
+float sgn(float x) {
+	return (x<0)?-1:1;
+}
+
+float pMirror ( inout float p, float dist ) {
+	float s = sgn(p);
+	p = abs(p)-dist;
+	return s;
+}
+
 // 0 nohit
 #define NOHIT 0
 // 1 diffuse
@@ -186,6 +196,16 @@ float deBox ( vec3 p, vec3 b ) {
 
 float deRoundedBox ( vec3 p, vec3 boxDims, float radius ){
 	return length( max( abs( p ) - boxDims, 0.0f ) ) - radius;
+}
+
+float de_line_segment ( vec3 p, vec3 a, vec3 b ) {
+	vec3 ab = b - a;
+	float t = clamp(dot(p - a, ab) / dot(ab, ab), 0., 1.);
+	return length((ab*t + a) - p);
+}
+
+float deCapsule ( vec3 p, vec3 a, vec3 b, float r ) {
+	return de_line_segment(p, a, b) - r;
 }
 
 vec3 GetColorForTemperature ( float temperature ) {
@@ -255,25 +275,41 @@ float de ( vec3 p ) {
 	// revert to original point value
 	p = pCache;
 
+	pCache = p;
+	pMirror( p.x, 0.0f );
+
+	// railings - probably use some instancing on them
+	float dRails = deCapsule( p, vec3( 7.0f, 2.4f, 100.0f ), vec3( 7.0f, 2.4f, -100.0f ), 0.3f );
+	dRails = min( dRails, deCapsule( p, vec3( 7.0f, 0.6f, 100.0f ), vec3( 7.0f, 0.6f, -100.0f ), 0.1f ) );
+	dRails = min( dRails, deCapsule( p, vec3( 7.0f, 1.1f, 100.0f ), vec3( 7.0f, 1.1f, -100.0f ), 0.1f ) );
+	dRails = min( dRails, deCapsule( p, vec3( 7.0f, 1.6f, 100.0f ), vec3( 7.0f, 1.6f, -100.0f ), 0.1f ) );
+	sceneDist = min( dRails, sceneDist );
+	if ( sceneDist == dRails && dRails <= epsilon ) {
+		hitpointColor = metallicDiffuse;
+		hitpointSurfaceType = SPECULAR;
+	}
+
+	p = pCache;
+
 	// three light bars - neutral, cool, warm
 	float dCenterLightBar = deBox( p - vec3( 0.0f, 7.4f, 0.0f ), vec3( 1.0f, 0.1f, 24.0f ) );
 	sceneDist = min( dCenterLightBar, sceneDist );
 	if ( sceneDist == dCenterLightBar && dCenterLightBar <= epsilon ) {
-		hitpointColor = 0.1f * GetColorForTemperature( 6500.0f );
+		hitpointColor = 0.6f * GetColorForTemperature( 6500.0f );
 		hitpointSurfaceType = EMISSIVE;
 	}
 
 	float dCoolLightBar = deBox( p - vec3( 7.5f, -0.4f, 0.0f ), vec3( 0.618f, 0.05f, 24.0f ) );
 	sceneDist = min( dCoolLightBar, sceneDist );
 	if ( sceneDist == dCoolLightBar && dCoolLightBar <= epsilon ) {
-		hitpointColor = 0.1f * GetColorForTemperature( 1000000.0f ); // we need to go bluer... tbd
+		hitpointColor = 0.8f * GetColorForTemperature( 1000000.0f ); // we need to go bluer... tbd
 		hitpointSurfaceType = EMISSIVE;
 	}
 
 	float dWarmLightBar = deBox( p - vec3( -7.5f, -0.4f, 0.0f ), vec3( 0.618f, 0.05f, 24.0f ) );
 	sceneDist = min( dWarmLightBar, sceneDist );
 	if ( sceneDist == dWarmLightBar && dWarmLightBar <= epsilon ) {
-		hitpointColor = 0.1f * GetColorForTemperature( 800.0f );
+		hitpointColor = 0.8f * GetColorForTemperature( 800.0f );
 		hitpointSurfaceType = EMISSIVE;
 	}
 
