@@ -5,8 +5,9 @@ layout( binding = 1, rgba32f ) uniform image2D accumulatorColor;
 layout( binding = 2, rgba32f ) uniform image2D accumulatorNormalsAndDepth;
 layout( binding = 3, rgba8ui ) uniform uimage2D blueNoise;
 
-#define PI 3.1415926535897932384626433832795
-#define AA 1 // AA value of 2 means each sample is actually 2*2 = 4 offset samples
+#include "hg_sdf.glsl" // SDF modeling functions
+
+#define AA 1 // AA value of 2 means each sample is actually 2*2 = 4 offset samples, slows things way down
 
 // core rendering stuff
 uniform ivec2	tileOffset;			// tile renderer offset for the current tile
@@ -113,54 +114,10 @@ mat3 rotate3D ( float angle, vec3 axis ) {
 	);
 }
 
-float fOpIntersectionRound ( float a, float b, float r ) {
-	vec2 u = max( vec2( r + a, r + b ), vec2( 0.0f ) );
-	return min( -r, max ( a, b ) ) + length( u );
-}
-
-float fOpIntersectionChamfer ( float a, float b, float r ) {
-	return max( max( a, b ), ( a + r + b ) * sqrt( 0.5f ) );
-}
-
-// Difference can be built from Intersection or Union:
-float fOpDifferenceChamfer ( float a, float b, float r ) {
-	return fOpIntersectionChamfer( a, -b, r );
-}
-
-// Repeat in one dimensions
-float pMod1 ( inout float p, float size ) {
-	float halfsize = size * 0.5f;
-	float c = floor( ( p + halfsize ) / size );
-	p = mod( p + halfsize, size ) - halfsize;
-	return c;
-}
-
-// Repeat in two dimensions
-vec2 pMod2 ( inout vec2 p, vec2 size ) {
-	vec2 c = floor( ( p + size * 0.5f ) / size );
-	p = mod( p + size * 0.5f, size ) - size * 0.5f;
-	return c;
-}
-
-float sgn(float x) {
-	return (x<0)?-1:1;
-}
-
-float pMirror ( inout float p, float dist ) {
-	float s = sgn(p);
-	p = abs(p)-dist;
-	return s;
-}
-
-// 0 nohit
 #define NOHIT 0
-// 1 diffuse
 #define DIFFUSE 1
-// 2 specular
 #define SPECULAR 2
-// 3 emissive
 #define EMISSIVE 3
-// 4 refractive
 #define REFRACTIVE 4
 
 // eventually, probably define a list of materials, and index into that - that will allow for
@@ -183,10 +140,6 @@ float deLens ( vec3 p ) {
 
 float dePlane ( vec3 p, vec3 normal, float distanceFromOrigin ) {
 	return dot( p, normal ) + distanceFromOrigin;
-}
-
-float vmax ( vec3 v ) {
-	return max( max( v.x, v.y ), v.z );
 }
 
 float deBox ( vec3 p, vec3 b ) {
@@ -261,32 +214,36 @@ float de ( vec3 p ) {
 
 	// store point value before applying repeat
 	vec3 pCache = p;
-	pMod1( p.z, 8.0f );
-	pMod1( p.x, 14.0f );
+	pMirror( p.x, 0.0f );
 
-	float dArches = deBox( p - vec3( 0.0f, 4.9f, 0.0f ), vec3( 10.0f, 5.0f, 1.0f ) );
-	dArches = fOpDifferenceChamfer( dArches, deRoundedBox( p, vec3( 3.0f, 4.5f, 1.0f ), 3.0f ), 0.2f );
-	sceneDist = min( dArches, sceneDist );
-	if ( sceneDist == dArches && dArches < epsilon ) {
-		hitpointColor = floorCielingColor;
-		hitpointSurfaceType = DIFFUSE;
+	// railings - probably use some instancing on them, also want to use a bounding volume
+	float dRails = deCapsule( p, vec3( 7.0f, 2.4f, 100.0f ), vec3( 7.0f, 2.4f, -100.0f ), 0.3f );
+	dRails = min( dRails, deCapsule( p, vec3( 7.0f, 0.6f, 100.0f ), vec3( 7.0f, 0.6f, -100.0f ), 0.1f ) );
+	dRails = min( dRails, deCapsule( p, vec3( 7.0f, 1.1f, 100.0f ), vec3( 7.0f, 1.1f, -100.0f ), 0.1f ) );
+	dRails = min( dRails, deCapsule( p, vec3( 7.0f, 1.6f, 100.0f ), vec3( 7.0f, 1.6f, -100.0f ), 0.1f ) );
+	// I want to do one of the fancy intersection functions for where they meet the columns, make like a mounting chamfer
+	// dRails = fOpTongue( dRails, dArches, 0.03, 0.03 );
+	sceneDist = min( dRails, sceneDist );
+	if ( sceneDist == dRails && dRails <= epsilon ) {
+		hitpointColor = vec3( 0.618f );
+		hitpointSurfaceType = SPECULAR;
 	}
 
 	// revert to original point value
 	p = pCache;
 
-	pCache = p;
-	pMirror( p.x, 0.0f );
+	pMod1( p.x, 14.0f );
+	p.z += 2.0f;
+	pModMirror1( p.z, 4.0f );
 
-	// railings - probably use some instancing on them
-	float dRails = deCapsule( p, vec3( 7.0f, 2.4f, 100.0f ), vec3( 7.0f, 2.4f, -100.0f ), 0.3f );
-	dRails = min( dRails, deCapsule( p, vec3( 7.0f, 0.6f, 100.0f ), vec3( 7.0f, 0.6f, -100.0f ), 0.1f ) );
-	dRails = min( dRails, deCapsule( p, vec3( 7.0f, 1.1f, 100.0f ), vec3( 7.0f, 1.1f, -100.0f ), 0.1f ) );
-	dRails = min( dRails, deCapsule( p, vec3( 7.0f, 1.6f, 100.0f ), vec3( 7.0f, 1.6f, -100.0f ), 0.1f ) );
-	sceneDist = min( dRails, sceneDist );
-	if ( sceneDist == dRails && dRails <= epsilon ) {
-		hitpointColor = metallicDiffuse;
-		hitpointSurfaceType = SPECULAR;
+	float dArches = deBox( p - vec3( 0.0f, 4.9f, 0.0f ), vec3( 10.0f, 5.0f, 5.0f ) );
+	dArches = fOpDifferenceChamfer( dArches, deRoundedBox( p - vec3( 0.0f, 0.0f, 3.0f ), vec3( 10.0f, 4.5f, 1.0f ), 3.0f ), 0.2f );
+	dArches = fOpDifferenceChamfer( dArches, deRoundedBox( p, vec3( 3.0f, 4.5f, 10.0f ), 3.0f ), 0.2f );
+	dArches = fOpDifferenceChamfer( dArches, dRails - 0.1f, 0.1f );
+	sceneDist = min( dArches, sceneDist );
+	if ( sceneDist == dArches && dArches < epsilon ) {
+		hitpointColor = floorCielingColor;
+		hitpointSurfaceType = DIFFUSE;
 	}
 
 	p = pCache;
@@ -504,7 +461,7 @@ vec3 colorSample ( vec3 rayOrigin_in, vec3 rayDirection_in ) {
 		if ( hitpointSurfaceType_cache != REFRACTIVE ) {
 			// russian roulette termination - chance for ray to quit early
 			float maxChannel = max( throughput.r, max( throughput.g, throughput.b ) );
-			if ( normalizedRandomFloat() > maxChannel ) break;
+			if ( normalizedRandomFloat() > maxChannel ) { break; }
 			// russian roulette compensation term
 			throughput *= 1.0f / maxChannel;
 		}
@@ -540,6 +497,7 @@ vec3 pathtraceSample ( ivec2 location, int n ) {
 	vec3  cResult = vec3( 0.0f );
 	vec3  nResult = vec3( 0.0f );
 	float dResult = 0.0f;
+	const float aspectRatio = float( imageSize( accumulatorColor ).x ) / float( imageSize( accumulatorColor ).y );
 
 #if AA != 1
 	// at AA = 2, this is 4 samples per invocation
@@ -550,14 +508,10 @@ vec3 pathtraceSample ( ivec2 location, int n ) {
 
 			// pixel offset + mapped position
 			// vec2 offset = vec2( x + normalizedRandomFloat(), y + normalizedRandomFloat() ) / float( AA ) - 0.5; // previous method
-			vec2 offset = getRandomOffset( n );
+			vec2 subpixelOffset  = getRandomOffset( n );
 			vec2 halfScreenCoord = vec2( imageSize( accumulatorColor ) / 2.0f );
-			vec2 mappedPosition = ( vec2( location + offset ) - halfScreenCoord ) / halfScreenCoord;
+			vec2 mappedPosition  = ( vec2( location + subpixelOffset ) - halfScreenCoord ) / halfScreenCoord;
 
-			// aspect ratio
-			float aspectRatio = float( imageSize( accumulatorColor ).x ) / float( imageSize( accumulatorColor ).y );
-
-			// ray origin + direction
 			vec3 rayDirection = normalize( aspectRatio * mappedPosition.x * basisX + mappedPosition.y * basisY + ( 1.0f / FoV ) * basisZ );
 			vec3 rayOrigin    = viewerPosition;
 
@@ -565,13 +519,12 @@ vec3 pathtraceSample ( ivec2 location, int n ) {
 				// this is a small adjustment to the ray origin and direction - not working correctly - need to revist this
 			vec3 focuspoint = rayOrigin + ( ( rayDirection * focusDistance ) / dot( rayDirection, basisZ ) );
 			vec2 diskOffset = thinLensIntensity * randomInUnitDisk();
-			// rayOrigin += diskOffset.x * basisX + diskOffset.y * basisY + thinLensIntensity * normalizedRandomFloat() * basisZ; // noticing very little difference adding this additional z jitter
-			rayOrigin += diskOffset.x * basisX + diskOffset.y * basisY;
-			rayDirection = normalize( focuspoint - rayOrigin );
+			rayOrigin       += diskOffset.x * basisX + diskOffset.y * basisY;
+			rayDirection    = normalize( focuspoint - rayOrigin );
 
 			// get depth and normals - think about special handling for refractive hits, maybe consider total distance traveled after all bounces?
-			float distanceToFirstHit = raymarch( rayOrigin, rayDirection );
-			storeNormalAndDepth( normal( rayOrigin + distanceToFirstHit * rayDirection ), distanceToFirstHit ); // storing bad results, revisit
+			float distanceToFirstHit = raymarch( rayOrigin, rayDirection ); // may need to use more raymarch steps / decrease understep, creates some artifacts
+			storeNormalAndDepth( normal( rayOrigin + distanceToFirstHit * rayDirection ), distanceToFirstHit );
 
 			// get the result for a ray
 			cResult += colorSample( rayOrigin, rayDirection );
