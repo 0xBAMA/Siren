@@ -248,6 +248,24 @@ float de ( vec3 p ) {
 
 	p = pCache;
 
+	// illumination in the cores of the coloumns, visible through the holes for the railings
+	pModMirror1( p.z, 8.0f );
+	float dLightCoreWarm = deBox( p - vec3( -7.0f, 1.6f, 0.0f ), vec3( 0.5f, 1.1f, 0.618f ) );
+	sceneDist = min( dLightCoreWarm, sceneDist );
+	if ( sceneDist == dLightCoreWarm && dLightCoreWarm <= epsilon ) {
+		hitpointColor = 0.6f * GetColorForTemperature( 3000.0f );
+		hitpointSurfaceType = EMISSIVE;
+	}
+
+	float dLightCoreCool = deBox( p - vec3( 7.0f, 1.6f, 0.0f ), vec3( 0.5f, 1.1f, 0.618f ) );
+	sceneDist = min( dLightCoreCool, sceneDist );
+	if ( sceneDist == dLightCoreCool && dLightCoreCool <= epsilon ) {
+		hitpointColor = 0.6f * GetColorForTemperature( 20000.0f );
+		hitpointSurfaceType = EMISSIVE;
+	}
+
+	p = pCache;
+
 	// three light bars - neutral, cool, warm
 	float dCenterLightBar = deBox( p - vec3( 0.0f, 7.4f, 0.0f ), vec3( 1.0f, 0.1f, 24.0f ) );
 	sceneDist = min( dCenterLightBar, sceneDist );
@@ -259,14 +277,14 @@ float de ( vec3 p ) {
 	float dCoolLightBar = deBox( p - vec3( 7.5f, -0.4f, 0.0f ), vec3( 0.618f, 0.05f, 24.0f ) );
 	sceneDist = min( dCoolLightBar, sceneDist );
 	if ( sceneDist == dCoolLightBar && dCoolLightBar <= epsilon ) {
-		hitpointColor = 0.8f * GetColorForTemperature( 1000000.0f ); // we need to go bluer... tbd
+		hitpointColor = 0.8f * pow( GetColorForTemperature( 1000000.0f ), vec3( 3.0f ) ); // we need to go bluer... tbd
 		hitpointSurfaceType = EMISSIVE;
 	}
 
 	float dWarmLightBar = deBox( p - vec3( -7.5f, -0.4f, 0.0f ), vec3( 0.618f, 0.05f, 24.0f ) );
 	sceneDist = min( dWarmLightBar, sceneDist );
 	if ( sceneDist == dWarmLightBar && dWarmLightBar <= epsilon ) {
-		hitpointColor = 0.8f * GetColorForTemperature( 800.0f );
+		hitpointColor = 0.8f * pow( GetColorForTemperature( 800.0f ), vec3( 1.2f ) );
 		hitpointSurfaceType = EMISSIVE;
 	}
 
