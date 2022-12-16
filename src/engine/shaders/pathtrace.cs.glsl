@@ -163,14 +163,14 @@ float deCapsule ( vec3 p, vec3 a, vec3 b, float r ) {
 
 vec3 GetColorForTemperature ( float temperature ) {
 	mat3 m = ( temperature <= 6500.0f )
-			? mat3( vec3( 0.0f, -2902.1955373783176f, -8257.7997278925690f ),
-					vec3( 0.0f, 1669.5803561666639f, 2575.2827530017594f ),
-					vec3( 1.0f, 1.3302673723350029f, 1.8993753891711275f ) )
-			: mat3( vec3( 1745.0425298314172f, 1216.6168361476490f, -8257.7997278925690f ),
-					vec3( -2666.3474220535695f, -2173.1012343082230f, 2575.2827530017594f ),
-					vec3( 0.55995389139931482f, 0.70381203140554553f, 1.8993753891711275f ) );
-	return mix( clamp( vec3( m[ 0 ] / ( vec3( clamp( temperature, 1000.0f, 40000.0f ) ) + m[ 1 ] ) + m[ 2 ] ),
-		vec3( 0.0f ), vec3( 1.0f ) ), vec3( 1.0f ), smoothstep( 1000.0f, 0.0f, temperature ) );
+		? mat3( vec3( 0.0f, -2902.1955373783176f, -8257.7997278925690f ),
+				vec3( 0.0f, 1669.5803561666639f, 2575.2827530017594f ),
+				vec3( 1.0f, 1.3302673723350029f, 1.8993753891711275f ) )
+		: mat3( vec3( 1745.0425298314172f, 1216.6168361476490f, -8257.7997278925690f ),
+				vec3( -2666.3474220535695f, -2173.1012343082230f, 2575.2827530017594f ),
+				vec3( 0.55995389139931482f, 0.70381203140554553f, 1.8993753891711275f ) );
+	return mix( clamp( vec3( m[ 0 ] / ( vec3( clamp( temperature, 1000.0f, 40000.0f ) ) + m[ 1 ] )
+		+ m[ 2 ] ), vec3( 0.0f ), vec3( 1.0f ) ), vec3( 1.0f ), smoothstep( 1000.0f, 0.0f, temperature ) );
 }
 
 // surface distance estimate for the whole scene
@@ -237,9 +237,9 @@ float de ( vec3 p ) {
 	pModMirror1( p.z, 4.0f );
 
 	float dArches = deBox( p - vec3( 0.0f, 4.9f, 0.0f ), vec3( 10.0f, 5.0f, 5.0f ) );
-	dArches = fOpDifferenceChamfer( dArches, deRoundedBox( p - vec3( 0.0f, 0.0f, 3.0f ), vec3( 10.0f, 4.5f, 1.0f ), 3.0f ), 0.2f );
-	dArches = fOpDifferenceChamfer( dArches, deRoundedBox( p, vec3( 3.0f, 4.5f, 10.0f ), 3.0f ), 0.2f );
-	dArches = fOpDifferenceChamfer( dArches, dRails - 0.1f, 0.1f );
+	dArches = fOpDifferenceRound( dArches, deRoundedBox( p - vec3( 0.0f, 0.0f, 3.0f ), vec3( 10.0f, 4.5f, 1.0f ), 3.0f ), 0.2f );
+	dArches = fOpDifferenceRound( dArches, deRoundedBox( p, vec3( 3.0f, 4.5f, 10.0f ), 3.0f ), 0.2f );
+	dArches = fOpDifferenceRound( dArches, dRails - 0.1f, 0.1f );
 	sceneDist = min( dArches, sceneDist );
 	if ( sceneDist == dArches && dArches < epsilon ) {
 		hitpointColor = floorCielingColor;
@@ -248,23 +248,16 @@ float de ( vec3 p ) {
 
 	p = pCache;
 
-	// illumination in the cores of the coloumns, visible through the holes for the railings
-	pModMirror1( p.z, 8.0f );
-	float dLightCoreWarm = deBox( p - vec3( -7.0f, 1.6f, 0.0f ), vec3( 0.5f, 1.1f, 0.618f ) );
-	sceneDist = min( dLightCoreWarm, sceneDist );
-	if ( sceneDist == dLightCoreWarm && dLightCoreWarm <= epsilon ) {
-		hitpointColor = 0.6f * GetColorForTemperature( 3000.0f );
-		hitpointSurfaceType = EMISSIVE;
-	}
-
-	float dLightCoreCool = deBox( p - vec3( 7.0f, 1.6f, 0.0f ), vec3( 0.5f, 1.1f, 0.618f ) );
-	sceneDist = min( dLightCoreCool, sceneDist );
-	if ( sceneDist == dLightCoreCool && dLightCoreCool <= epsilon ) {
-		hitpointColor = 0.6f * GetColorForTemperature( 20000.0f );
-		hitpointSurfaceType = EMISSIVE;
-	}
-
-	p = pCache;
+	// // illumination in the cores of the coloumns, visible through the holes for the railings
+	// pMod1( p.x, 1.0f );
+	// pModMirror1( p.z, 8.0f );
+	// float dLightCore = deBox( p - vec3( -7.0f, 1.6f, 0.0f ), vec3( 0.5f, 1.1f, 0.618f ) );
+	// sceneDist = min( dLightCore, sceneDist );
+	// if ( sceneDist == dLightCore && dLightCore <= epsilon ) {
+	// 	hitpointColor = 0.6f * GetColorForTemperature( 3000.0f );
+	// 	hitpointSurfaceType = EMISSIVE;
+	// }
+	// p = pCache;
 
 	// three light bars - neutral, cool, warm
 	float dCenterLightBar = deBox( p - vec3( 0.0f, 7.4f, 0.0f ), vec3( 1.0f, 0.1f, 24.0f ) );
@@ -277,14 +270,16 @@ float de ( vec3 p ) {
 	float dCoolLightBar = deBox( p - vec3( 7.5f, -0.4f, 0.0f ), vec3( 0.618f, 0.05f, 24.0f ) );
 	sceneDist = min( dCoolLightBar, sceneDist );
 	if ( sceneDist == dCoolLightBar && dCoolLightBar <= epsilon ) {
-		hitpointColor = 0.8f * pow( GetColorForTemperature( 1000000.0f ), vec3( 3.0f ) ); // we need to go bluer... tbd
+		// hitpointColor = 0.8f * pow( GetColorForTemperature( 1000000.0f ), vec3( 3.0f ) ); // we need to go bluer... tbd
+		hitpointColor = 0.6f * GetColorForTemperature( 1000000.0f );
 		hitpointSurfaceType = EMISSIVE;
 	}
 
 	float dWarmLightBar = deBox( p - vec3( -7.5f, -0.4f, 0.0f ), vec3( 0.618f, 0.05f, 24.0f ) );
 	sceneDist = min( dWarmLightBar, sceneDist );
 	if ( sceneDist == dWarmLightBar && dWarmLightBar <= epsilon ) {
-		hitpointColor = 0.8f * pow( GetColorForTemperature( 800.0f ), vec3( 1.2f ) );
+		// hitpointColor = 0.8f * pow( GetColorForTemperature( 800.0f ), vec3( 1.2f ) );
+		hitpointColor = 0.6f * GetColorForTemperature( 1000.0f );
 		hitpointSurfaceType = EMISSIVE;
 	}
 
