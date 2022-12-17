@@ -1,12 +1,12 @@
 {
 	"windowTitle":"NQADE",
 	"MSAACount":8,
-	"startOnScreen":1,
-	"screenWidth":1600,
-	"screenHeight":900,
+	"startOnScreen":0,
+	"screenWidth":1920,
+	"screenHeight":1080,
 	"windowOffset":{
-		"x":300,
-		"y":200
+		"x":0,
+		"y":0
 	},
 	"linearFilterDisplayTex":true,
 	"OpenGLVersionMajor":4,

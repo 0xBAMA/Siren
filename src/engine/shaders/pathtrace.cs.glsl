@@ -123,6 +123,29 @@ mat3 rotate3D ( float angle, vec3 axis ) {
 // eventually, probably define a list of materials, and index into that - that will allow for
 	// e.g. refractive materials of multiple different indices of refraction
 
+
+float deFractal(vec3 p){
+  const int iterations = 20;
+  float d = -0.3 * p.z; // vary this parameter, range is like -20 to 20
+  p=p.yxz;
+  pR(p.yz, 1.570795);
+  p.x += 6.5;
+  p.yz = mod(abs(p.yz)-.0, 20.) - 10.;
+  float scale = 1.25;
+  p.xy /= (1.+d*d*0.0005);
+
+  float l = 0.;
+  for (int i=0; i < iterations; i++) {
+    p.xy = abs(p.xy);
+    p = p*scale + vec3(-3. + d*0.0095,-1.5,-.5);
+    pR(p.xy,0.35-d*0.015);
+    pR(p.yz,0.5+d*0.02);
+    vec3 p6 = p*p*p; p6=p6*p6;
+    l =pow(p6.x + p6.y + p6.z, 1./6.);
+  }
+  return l*pow(scale, -float(iterations))-.15;
+}
+
 vec3 hitpointColor = vec3( 0.0f );
 int hitpointSurfaceType = NOHIT; // identifier for the hit surface
 float deLens ( vec3 p ) {
@@ -138,27 +161,8 @@ float deLens ( vec3 p ) {
 	return dFinal * lensScaleFactor;
 }
 
-float dePlane ( vec3 p, vec3 normal, float distanceFromOrigin ) {
-	return dot( p, normal ) + distanceFromOrigin;
-}
-
-float deBox ( vec3 p, vec3 b ) {
-	vec3 d = abs( p ) - b;
-	return length( max( d, vec3( 0.0f ) ) ) + vmax( min( d, vec3( 0 ) ) );
-}
-
 float deRoundedBox ( vec3 p, vec3 boxDims, float radius ){
 	return length( max( abs( p ) - boxDims, 0.0f ) ) - radius;
-}
-
-float de_line_segment ( vec3 p, vec3 a, vec3 b ) {
-	vec3 ab = b - a;
-	float t = clamp(dot(p - a, ab) / dot(ab, ab), 0., 1.);
-	return length((ab*t + a) - p);
-}
-
-float deCapsule ( vec3 p, vec3 a, vec3 b, float r ) {
-	return de_line_segment(p, a, b) - r;
 }
 
 vec3 GetColorForTemperature ( float temperature ) {
@@ -180,111 +184,120 @@ float de ( vec3 p ) {
 	float sceneDist = 1000.0f;
 	hitpointColor = vec3( 0.0f );
 
-	// North, South, East, West walls
-	float dNorthWall = dePlane( p, vec3(  0.0f, 0.0f, -1.0f ), 24.0f );
-	float dSouthWall = dePlane( p, vec3(  0.0f, 0.0f, 1.0f ), 24.0f );
-	float dEastWall = dePlane( p, vec3( -1.0f,  0.0f, 0.0f ), 10.0f );
-	float dWestWall = dePlane( p, vec3( 1.0f,  0.0f, 0.0f ), 10.0f );
-	float dWalls = min( min( min( dNorthWall, dSouthWall ), dEastWall ), dWestWall );
-	sceneDist = min( dWalls, sceneDist );
-	if ( sceneDist == dWalls && dWalls < epsilon ) {
-		hitpointColor = whiteWallColor;
-		hitpointSurfaceType = DIFFUSE;
-	}
+	// if ( room 1 bounds )
 
-	// floor and cieling
-	float dFloor = dePlane( p, vec3( 0.0f, 1.0f, 0.0f ), 4.0f );
-	float dCieling = dePlane( p, vec3( 0.0f, -1.0f, 0.0f ), 8.0f );
-	float dFloorCieling = min( dFloor, dCieling );
-	sceneDist = min( dFloorCieling, sceneDist );
-	if ( sceneDist == dFloorCieling && dFloorCieling < epsilon ) {
-		hitpointColor = floorCielingColor;
-		hitpointSurfaceType = DIFFUSE;
-	}
+		// North, South, East, West walls
+		float dNorthWall = fPlane( p, vec3(  0.0f, 0.0f, -1.0f ), 24.0f );
+		float dSouthWall = fPlane( p, vec3(  0.0f, 0.0f, 1.0f ), 24.0f );
+		float dEastWall = fPlane( p, vec3( -1.0f,  0.0f, 0.0f ), 10.0f );
+		float dWestWall = fPlane( p, vec3( 1.0f,  0.0f, 0.0f ), 10.0f );
+		float dWalls = fOpUnionRound( fOpUnionRound( fOpUnionRound( dNorthWall, dSouthWall, 0.2f ), dEastWall, 0.2f ), dWestWall, 0.2f );
+		sceneDist = min( dWalls, sceneDist );
+		if ( sceneDist == dWalls && dWalls < epsilon ) {
+			hitpointColor = whiteWallColor;
+			hitpointSurfaceType = DIFFUSE;
+		}
 
-	// balcony floor
-	float dEastBalcony = deBox( p - vec3( 10.0f, 0.0f, 0.0f ), vec3( 4.0f, 0.1f, 48.0f ) );
-	float dWestBalcony = deBox( p - vec3( -10.0f, 0.0f, 0.0f ), vec3( 4.0f, 0.1f, 48.0f ) );
-	float dBalconies = min( dEastBalcony, dWestBalcony );
-	sceneDist = min( dBalconies, sceneDist );
-	if ( sceneDist == dBalconies && dBalconies < epsilon ) {
-		hitpointColor = floorCielingColor;
-		hitpointSurfaceType = DIFFUSE;
-	}
+		// floor and cieling
+		float dFloor = fPlane( p, vec3( 0.0f, 1.0f, 0.0f ), 4.0f );
+		float dCieling = fPlane( p, vec3( 0.0f, -1.0f, 0.0f ), 8.0f );
+		float dFloorCieling = min( dFloor, dCieling );
+		sceneDist = min( dFloorCieling, sceneDist );
+		if ( sceneDist == dFloorCieling && dFloorCieling < epsilon ) {
+			hitpointColor = floorCielingColor;
+			hitpointSurfaceType = DIFFUSE;
+		}
 
-	// store point value before applying repeat
-	vec3 pCache = p;
-	pMirror( p.x, 0.0f );
+		// balcony floor
+		float dEastBalcony = fBox( p - vec3( 10.0f, 0.0f, 0.0f ), vec3( 4.0f, 0.1f, 48.0f ) );
+		float dWestBalcony = fBox( p - vec3( -10.0f, 0.0f, 0.0f ), vec3( 4.0f, 0.1f, 48.0f ) );
+		float dBalconies = min( dEastBalcony, dWestBalcony );
+		sceneDist = min( dBalconies, sceneDist );
+		if ( sceneDist == dBalconies && dBalconies < epsilon ) {
+			hitpointColor = floorCielingColor;
+			hitpointSurfaceType = DIFFUSE;
+		}
 
-	// railings - probably use some instancing on them, also want to use a bounding volume
-	float dRails = deCapsule( p, vec3( 7.0f, 2.4f, 100.0f ), vec3( 7.0f, 2.4f, -100.0f ), 0.3f );
-	dRails = min( dRails, deCapsule( p, vec3( 7.0f, 0.6f, 100.0f ), vec3( 7.0f, 0.6f, -100.0f ), 0.1f ) );
-	dRails = min( dRails, deCapsule( p, vec3( 7.0f, 1.1f, 100.0f ), vec3( 7.0f, 1.1f, -100.0f ), 0.1f ) );
-	dRails = min( dRails, deCapsule( p, vec3( 7.0f, 1.6f, 100.0f ), vec3( 7.0f, 1.6f, -100.0f ), 0.1f ) );
-	// I want to do one of the fancy intersection functions for where they meet the columns, make like a mounting chamfer
-	// dRails = fOpTongue( dRails, dArches, 0.03, 0.03 );
-	sceneDist = min( dRails, sceneDist );
-	if ( sceneDist == dRails && dRails <= epsilon ) {
-		hitpointColor = vec3( 0.618f );
-		hitpointSurfaceType = SPECULAR;
-	}
+		// store point value before applying repeat
+		vec3 pCache = p;
+		pMirror( p.x, 0.0f );
 
-	// revert to original point value
-	p = pCache;
+		// if railing bounding box is true
 
-	pMod1( p.x, 14.0f );
-	p.z += 2.0f;
-	pModMirror1( p.z, 4.0f );
+			// railings - probably use some instancing on them, also want to use a bounding volume
+			float dRails = fCapsule( p, vec3( 7.0f, 2.4f, 24.0f ), vec3( 7.0f, 2.4f, -24.0f ), 0.3f );
+			dRails = min( dRails, fCapsule( p, vec3( 7.0f, 0.6f, 24.0f ), vec3( 7.0f, 0.6f, -24.0f ), 0.1f ) );
+			dRails = min( dRails, fCapsule( p, vec3( 7.0f, 1.1f, 24.0f ), vec3( 7.0f, 1.1f, -24.0f ), 0.1f ) );
+			dRails = min( dRails, fCapsule( p, vec3( 7.0f, 1.6f, 24.0f ), vec3( 7.0f, 1.6f, -24.0f ), 0.1f ) );
+			sceneDist = min( dRails, sceneDist );
+			if ( sceneDist == dRails && dRails <= epsilon ) {
+				hitpointColor = vec3( 0.618f );
+				hitpointSurfaceType = SPECULAR;
+			}
 
-	float dArches = deBox( p - vec3( 0.0f, 4.9f, 0.0f ), vec3( 10.0f, 5.0f, 5.0f ) );
-	dArches = fOpDifferenceRound( dArches, deRoundedBox( p - vec3( 0.0f, 0.0f, 3.0f ), vec3( 10.0f, 4.5f, 1.0f ), 3.0f ), 0.2f );
-	dArches = fOpDifferenceRound( dArches, deRoundedBox( p, vec3( 3.0f, 4.5f, 10.0f ), 3.0f ), 0.2f );
-	dArches = fOpDifferenceRound( dArches, dRails - 0.1f, 0.1f );
-	sceneDist = min( dArches, sceneDist );
-	if ( sceneDist == dArches && dArches < epsilon ) {
-		hitpointColor = floorCielingColor;
-		hitpointSurfaceType = DIFFUSE;
-	}
+			// revert to original point value
+			p = pCache;
 
-	p = pCache;
+		// end railing bounding box
 
-	// // illumination in the cores of the coloumns, visible through the holes for the railings
-	// pMod1( p.x, 1.0f );
-	// pModMirror1( p.z, 8.0f );
-	// float dLightCore = deBox( p - vec3( -7.0f, 1.6f, 0.0f ), vec3( 0.5f, 1.1f, 0.618f ) );
-	// sceneDist = min( dLightCore, sceneDist );
-	// if ( sceneDist == dLightCore && dLightCore <= epsilon ) {
-	// 	hitpointColor = 0.6f * GetColorForTemperature( 3000.0f );
-	// 	hitpointSurfaceType = EMISSIVE;
-	// }
-	// p = pCache;
+		pMod1( p.x, 14.0f );
+		p.z += 2.0f;
+		pModMirror1( p.z, 4.0f );
+		float dArches = fBox( p - vec3( 0.0f, 4.9f, 0.0f ), vec3( 10.0f, 5.0f, 5.0f ) );
+		dArches = fOpDifferenceRound( dArches, deRoundedBox( p - vec3( 0.0f, 0.0f, 3.0f ), vec3( 10.0f, 4.5f, 1.0f ), 3.0f ), 0.2f );
+		dArches = fOpDifferenceRound( dArches, deRoundedBox( p, vec3( 3.0f, 4.5f, 10.0f ), 3.0f ), 0.2f );
 
-	// three light bars - neutral, cool, warm
-	float dCenterLightBar = deBox( p - vec3( 0.0f, 7.4f, 0.0f ), vec3( 1.0f, 0.1f, 24.0f ) );
-	sceneDist = min( dCenterLightBar, sceneDist );
-	if ( sceneDist == dCenterLightBar && dCenterLightBar <= epsilon ) {
-		hitpointColor = 0.6f * GetColorForTemperature( 6500.0f );
-		hitpointSurfaceType = EMISSIVE;
-	}
+		// if railing bounding box is true
 
-	float dCoolLightBar = deBox( p - vec3( 7.5f, -0.4f, 0.0f ), vec3( 0.618f, 0.05f, 24.0f ) );
-	sceneDist = min( dCoolLightBar, sceneDist );
-	if ( sceneDist == dCoolLightBar && dCoolLightBar <= epsilon ) {
-		// hitpointColor = 0.8f * pow( GetColorForTemperature( 1000000.0f ), vec3( 3.0f ) ); // we need to go bluer... tbd
-		hitpointColor = 0.6f * GetColorForTemperature( 1000000.0f );
-		hitpointSurfaceType = EMISSIVE;
-	}
+			dArches = fOpDifferenceRound( dArches, dRails - 0.05f, 0.1f );
 
-	float dWarmLightBar = deBox( p - vec3( -7.5f, -0.4f, 0.0f ), vec3( 0.618f, 0.05f, 24.0f ) );
-	sceneDist = min( dWarmLightBar, sceneDist );
-	if ( sceneDist == dWarmLightBar && dWarmLightBar <= epsilon ) {
-		// hitpointColor = 0.8f * pow( GetColorForTemperature( 800.0f ), vec3( 1.2f ) );
-		hitpointColor = 0.6f * GetColorForTemperature( 1000.0f );
-		hitpointSurfaceType = EMISSIVE;
-	}
+		// end railing bounding box
 
-	// wang hash seeded scattered emissive spheres of random colors in the negative space? maybe refractive, not sure
-		// need to make sure that the seed is constant, and the existing seed is cached and restored, if I'm going to do this
+		sceneDist = min( dArches, sceneDist );
+		if ( sceneDist == dArches && dArches < epsilon ) {
+			hitpointColor = floorCielingColor;
+			hitpointSurfaceType = DIFFUSE;
+		}
+
+		p = pCache;
+
+		// three light bars - neutral, cool, warm
+		float dCenterLightBar = fBox( p - vec3( 0.0f, 7.4f, 0.0f ), vec3( 1.0f, 0.1f, 24.0f ) );
+		sceneDist = min( dCenterLightBar, sceneDist );
+		if ( sceneDist == dCenterLightBar && dCenterLightBar <= epsilon ) {
+			hitpointColor = 0.6f * GetColorForTemperature( 6500.0f );
+			hitpointSurfaceType = EMISSIVE;
+		}
+
+		const vec3 coolColor = 0.8f * pow( GetColorForTemperature( 1000000.0f ), vec3( 3.0f ) );
+		const vec3 midColor = 0.8f * GetColorForTemperature( 4000.0f );
+		const vec3 warmColor = 0.8f * pow( GetColorForTemperature( 1000.0f ), vec3( 1.2f ) );
+
+		float dSideLightBar1 = fBox( p - vec3( 7.5f, -0.4f, 0.0f ), vec3( 0.618f, 0.05f, 24.0f ) );
+		sceneDist = min( dSideLightBar1, sceneDist );
+		if ( sceneDist == dSideLightBar1 && dSideLightBar1 <= epsilon ) {
+			hitpointColor = midColor;
+			hitpointSurfaceType = EMISSIVE;
+		}
+
+		float dSideLightBar2 = fBox( p - vec3( -7.5f, -0.4f, 0.0f ), vec3( 0.618f, 0.05f, 24.0f ) );
+		sceneDist = min( dSideLightBar2, sceneDist );
+		if ( sceneDist == dSideLightBar2 && dSideLightBar2 <= epsilon ) {
+			hitpointColor = midColor;
+			hitpointSurfaceType = EMISSIVE;
+		}
+
+		float scalar = 0.3f;
+		// float dFractal = deFractal( ( rotate3D( 0.9f, vec3( 0.0f, 0.0f, 1.0f ) ) * rotate3D( 1.0f, vec3( 1.0f, 0.0f, 0.0f ) ) * p + vec3( 0.0f, 6.0f, 0.0f ) ) / scalar ) * scalar;
+		// float dFractal = deFractal( ( rotate3D( PI / 2.0f, vec3( 0.0f, 1.0f, 0.0f ) ) * p + vec3( 0.0f, 6.0f, 0.0f ) ) / scalar ) * scalar;
+		float dFractal = deFractal( p / scalar ) * scalar;
+		sceneDist = min( dFractal, sceneDist );
+		if ( sceneDist == dFractal && dFractal <= epsilon ) {
+			hitpointColor = metallicDiffuse;
+			hitpointSurfaceType = SPECULAR;
+		}
+
+	// end if for first room bounds
 
 	return sceneDist;
 }

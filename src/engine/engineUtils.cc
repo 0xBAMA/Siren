@@ -292,11 +292,11 @@ void engine::ImguiPass () {
 			ImGui::SliderFloat( "Raymarch Epsilon", &core.epsilon, 0.0001f, 0.1f, "%.4f", ImGuiSliderFlags_Logarithmic ); UPDATECHECK;
 			ImGui::Separator();
 			ImGui::SliderFloat( "Exposure", &core.exposure, 0.1f, 3.6f );
-			ImGui::SliderFloat( "Thin Lens Focus Distance", &core.focusDistance, 0.0f, 8.0f, "%.3f", ImGuiSliderFlags_Logarithmic ); UPDATECHECK_C;
-			ImGui::SliderFloat( "Thin Lens Effect Intensity", &core.thinLensIntensity, 0.0f, 1.0f, "%.3f", ImGuiSliderFlags_Logarithmic );UPDATECHECK_C;
+			ImGui::SliderFloat( "Thin Lens Focus Distance", &core.focusDistance, 0.0f, 40.0f, "%.3f", ImGuiSliderFlags_Logarithmic ); UPDATECHECK_C;
+			ImGui::SliderFloat( "Thin Lens Effect Intensity", &core.thinLensIntensity, 0.0f, 1.2f, "%.3f", ImGuiSliderFlags_Logarithmic );UPDATECHECK_C;
 			ImGui::Separator();
 			ImGui::SliderInt( "SDF Normal Method", &core.normalMethod, 1, 3 ); UPDATECHECK; // only the first one really works correctly, maybe remove this
-			ImGui::SliderFloat( "Field of View", &core.FoV, 0.01f, 2.5f, "%.3f", ImGuiSliderFlags_Logarithmic ); UPDATECHECK;
+			ImGui::SliderFloat( "Field of View", &core.FoV, 0.01f, 5.0f, "%.3f", ImGuiSliderFlags_Logarithmic ); UPDATECHECK;
 			ImGui::Separator();
 			ImGui::SliderFloat( "Viewer X", &core.viewerPosition.x, -20.0f, 20.0f ); UPDATECHECK;
 			ImGui::SliderFloat( "Viewer Y", &core.viewerPosition.y, -20.0f, 20.0f ); UPDATECHECK;
