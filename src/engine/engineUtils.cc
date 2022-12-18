@@ -165,8 +165,10 @@ void engine::PostprocessUniformUpdate () {
 	glUniform1i( glGetUniformLocation( postprocessShader, "ditherMethod" ), post.ditherMethod );
 	glUniform1i( glGetUniformLocation( postprocessShader, "ditherPattern" ), post.ditherPattern );
 	glUniform1i( glGetUniformLocation( postprocessShader, "tonemapMode" ), post.tonemapMode );
+	glUniform3f( glGetUniformLocation( postprocessShader, "fogColor" ), post.fogColor.x, post.fogColor.y, post.fogColor.z );
 	glUniform1i( glGetUniformLocation( postprocessShader, "depthMode" ), post.depthMode );
 	glUniform1f( glGetUniformLocation( postprocessShader, "depthScale" ), post.depthScale );
+	glUniform1f( glGetUniformLocation( postprocessShader, "maxDistance" ), core.maxDistance );
 	glUniform1f( glGetUniformLocation( postprocessShader, "gamma" ), post.gamma );
 	glUniform1i( glGetUniformLocation( postprocessShader, "displayType" ), post.displayType );
 }
@@ -332,7 +334,8 @@ void engine::ImguiPass () {
 			ImGui::Separator();
 			ImGui::SliderInt( "Tonemap Mode", &post.tonemapMode, 0, 8 ); // whatever the range ends up being
 			ImGui::Separator();
-			ImGui::SliderInt( "Depth Fog Mode", &post.depthMode, 0, 8 ); // whatever the range ends up being
+			ImGui::ColorEdit3( "Depth Fog Color", ( float * ) &post.fogColor, ImGuiColorEditFlags_PickerHueWheel );
+			ImGui::SliderInt( "Depth Fog Mode", &post.depthMode, 0, 12 );
 			ImGui::SliderFloat( "Fog Depth Scalar", &post.depthScale, 0.01f, 10.0f );
 			ImGui::SliderFloat( "Gamma Correction", &post.gamma, 0.01f, 3.0f );
 			ImGui::SliderInt( "Display Type", &post.displayType, 0, 2 );

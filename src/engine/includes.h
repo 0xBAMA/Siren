@@ -201,8 +201,9 @@ struct postParameters {
 	int ditherMethod = 0;							// bitcrush bitcount or exponential scalar
 	int ditherPattern = 0;							// pattern used to dither the output
 	int tonemapMode = 0;							// tonemap curve to use
-	int depthMode = 0;								// depth fog method
+	int depthMode = 11;								// depth fog method
 	float depthScale = 0.0f;						// scalar for depth term, when computing depth effects ( fog )
+	vec3 fogColor = vec3( 1.0f );					// changes the color on the depth fog
 	float gamma = 1.6f;								// gamma correction term for the color result
 	float colorTemp = 6500.0f;						// warmer or cooler colored image, 6500k neutral by default
 	int displayType = 0;							// mode selector - show normals, show depth, show color, show postprocessed version

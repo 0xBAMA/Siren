@@ -124,26 +124,55 @@ mat3 rotate3D ( float angle, vec3 axis ) {
 	// e.g. refractive materials of multiple different indices of refraction
 
 
-float deFractal(vec3 p){
-  const int iterations = 20;
-  float d = -0.3 * p.z; // vary this parameter, range is like -20 to 20
-  p=p.yxz;
-  pR(p.yz, 1.570795);
-  p.x += 6.5;
-  p.yz = mod(abs(p.yz)-.0, 20.) - 10.;
-  float scale = 1.25;
-  p.xy /= (1.+d*d*0.0005);
+// tdhooper variant 1 - spherical inversion
+vec2 wrap ( vec2 x, vec2 a, vec2 s ) {
+  x -= s;
+  return (x - a * floor(x / a)) + s;
+}
 
-  float l = 0.;
-  for (int i=0; i < iterations; i++) {
-    p.xy = abs(p.xy);
-    p = p*scale + vec3(-3. + d*0.0095,-1.5,-.5);
-    pR(p.xy,0.35-d*0.015);
-    pR(p.yz,0.5+d*0.02);
-    vec3 p6 = p*p*p; p6=p6*p6;
-    l =pow(p6.x + p6.y + p6.z, 1./6.);
+void TransA ( inout vec3 z, inout float DF, float a, float b ) {
+  float iR = 1. / dot( z, z );
+  z *= -iR;
+  z.x = -b - z.x;
+  z.y = a + z.y;
+  DF *= iR; // max( 1.0, iR );
+}
+
+float deFractal( vec3 z ) {
+  vec3 InvCenter = vec3( 0.0, 1.0, 1.0 );
+  float rad = 0.8;
+  float KleinR = 1.5 + 0.39;
+  float KleinI = ( 0.55 * 2.0 - 1.0 );
+  vec2 box_size = vec2( -0.40445, 0.34 ) * 2.0;
+  vec3 lz = z + vec3( 1.0 ), llz = z + vec3( -1.0 );
+  float d = 0.0; float d2 = 0.0;
+  z = z - InvCenter;
+  d = length( z );
+  d2 = d * d;
+  z = ( rad * rad / d2 ) * z + InvCenter;
+  float DE = 1e12;
+  float DF = 1.0;
+  float a = KleinR;
+  float b = KleinI;
+  float f = sign( b ) * 0.45;
+  for ( int i = 0; i < 80; i++ ) {
+    z.x += b / a * z.y;
+    z.xz = wrap( z.xz, box_size * 2.0, -box_size );
+    z.x -= b / a * z.y;
+    if ( z.y >= a * 0.5 + f * ( 2.0 * a - 1.95 ) / 4.0 * sign( z.x + b * 0.5 ) *
+     ( 1.0 - exp( -( 7.2 - ( 1.95 - a ) * 15.0 )* abs(z.x + b * 0.5 ) ) ) ) {
+      z = vec3( -b, a, 0.0 ) - z;
+    } //If above the separation line, rotate by 180° about (-b/2, a/2)
+    TransA( z, DF, a, b ); //Apply transformation a
+    if ( dot( z - llz, z - llz ) < 1e-5 ) {
+      break;
+    } //If the iterated points enters a 2-cycle, bail out
+    llz = lz; lz = z; //Store previous iterates
   }
-  return l*pow(scale, -float(iterations))-.15;
+  float y =  min(z.y, a - z.y);
+  DE = min( DE, min( y, 0.3 ) / max( DF, 2.0 ) );
+  DE = DE * d2 / ( rad + d * DE );
+  return DE;
 }
 
 vec3 hitpointColor = vec3( 0.0f );
@@ -191,19 +220,16 @@ float de ( vec3 p ) {
 		float dSouthWall = fPlane( p, vec3(  0.0f, 0.0f, 1.0f ), 24.0f );
 		float dEastWall = fPlane( p, vec3( -1.0f,  0.0f, 0.0f ), 10.0f );
 		float dWestWall = fPlane( p, vec3( 1.0f,  0.0f, 0.0f ), 10.0f );
-		float dWalls = fOpUnionRound( fOpUnionRound( fOpUnionRound( dNorthWall, dSouthWall, 0.2f ), dEastWall, 0.2f ), dWestWall, 0.2f );
+		float dWalls = fOpUnionRound( fOpUnionRound( fOpUnionRound( dNorthWall, dSouthWall, 0.5f ), dEastWall, 0.5f ), dWestWall, 0.5f );
 		sceneDist = min( dWalls, sceneDist );
 		if ( sceneDist == dWalls && dWalls < epsilon ) {
 			hitpointColor = whiteWallColor;
 			hitpointSurfaceType = DIFFUSE;
 		}
 
-		// floor and cieling
 		float dFloor = fPlane( p, vec3( 0.0f, 1.0f, 0.0f ), 4.0f );
-		float dCieling = fPlane( p, vec3( 0.0f, -1.0f, 0.0f ), 8.0f );
-		float dFloorCieling = min( dFloor, dCieling );
-		sceneDist = min( dFloorCieling, sceneDist );
-		if ( sceneDist == dFloorCieling && dFloorCieling < epsilon ) {
+		sceneDist = min( dFloor, sceneDist );
+		if ( sceneDist == dFloor && dFloor < epsilon ) {
 			hitpointColor = floorCielingColor;
 			hitpointSurfaceType = DIFFUSE;
 		}
@@ -261,7 +287,7 @@ float de ( vec3 p ) {
 
 		p = pCache;
 
-		// three light bars - neutral, cool, warm
+		// the bar lights are the primary source of light in the scene
 		float dCenterLightBar = fBox( p - vec3( 0.0f, 7.4f, 0.0f ), vec3( 1.0f, 0.1f, 24.0f ) );
 		sceneDist = min( dCenterLightBar, sceneDist );
 		if ( sceneDist == dCenterLightBar && dCenterLightBar <= epsilon ) {
@@ -276,14 +302,14 @@ float de ( vec3 p ) {
 		float dSideLightBar1 = fBox( p - vec3( 7.5f, -0.4f, 0.0f ), vec3( 0.618f, 0.05f, 24.0f ) );
 		sceneDist = min( dSideLightBar1, sceneDist );
 		if ( sceneDist == dSideLightBar1 && dSideLightBar1 <= epsilon ) {
-			hitpointColor = midColor;
+			hitpointColor = coolColor;
 			hitpointSurfaceType = EMISSIVE;
 		}
 
 		float dSideLightBar2 = fBox( p - vec3( -7.5f, -0.4f, 0.0f ), vec3( 0.618f, 0.05f, 24.0f ) );
 		sceneDist = min( dSideLightBar2, sceneDist );
 		if ( sceneDist == dSideLightBar2 && dSideLightBar2 <= epsilon ) {
-			hitpointColor = midColor;
+			hitpointColor = warmColor;
 			hitpointSurfaceType = EMISSIVE;
 		}
 
@@ -294,8 +320,11 @@ float de ( vec3 p ) {
 		// 	hitpointSurfaceType = REFRACTIVE;
 		// 	enteringRefractive = !enteringRefractive;
 		// }
+
+		float scalar = 3.0f;
+		float dFractal = deFractal( ( rotate3D( 0.9f, vec3( 0.0f, 0.0f, 1.0f ) ) * rotate3D( 1.0f, vec3( 1.0f, 0.0f, 0.0f ) ) * p + vec3( 0.0f, 6.0f, 0.0f ) ) / scalar ) * scalar;
 		// float dFractal = deFractal( ( rotate3D( PI / 2.0f, vec3( 0.0f, 1.0f, 0.0f ) ) * p + vec3( 0.0f, 6.0f, 0.0f ) ) / scalar ) * scalar;
-		float dFractal = deFractal( p / scalar ) * scalar;
+		// float dFractal = deFractal( p / scalar ) * scalar;
 		sceneDist = min( dFractal, sceneDist );
 		if ( sceneDist == dFractal && dFractal <= epsilon ) {
 			hitpointColor = metallicDiffuse;
@@ -386,7 +415,10 @@ float raymarch ( vec3 origin, vec3 direction ) {
 		if ( dTotal > maxDistance || abs( dQuery ) < epsilon ) {
 			break;
 		}
-		// certain chance to scatter in a random direction, per step - one of nameless' methods for fog
+		// // certain chance to scatter in a random direction, per step - one of Nameless' methods for fog
+		// if ( normalizedRandomFloat() < 0.005f ) { // massive slowdown doing this
+		// 	direction = normalize( direction + 0.4f * randomUnitVector() );
+		// }
 	}
 	return dTotal;
 }
