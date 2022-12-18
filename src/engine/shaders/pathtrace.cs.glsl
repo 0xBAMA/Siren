@@ -287,8 +287,13 @@ float de ( vec3 p ) {
 			hitpointSurfaceType = EMISSIVE;
 		}
 
-		float scalar = 0.3f;
-		// float dFractal = deFractal( ( rotate3D( 0.9f, vec3( 0.0f, 0.0f, 1.0f ) ) * rotate3D( 1.0f, vec3( 1.0f, 0.0f, 0.0f ) ) * p + vec3( 0.0f, 6.0f, 0.0f ) ) / scalar ) * scalar;
+		// float dLens = ( enteringRefractive ? -1.0f : 1.0f ) * deLens( p );
+		// sceneDist = min( dLens, sceneDist );
+		// if ( sceneDist == dLens && dLens <= epsilon ) {
+		// 	hitpointColor = vec3( 0.11f );
+		// 	hitpointSurfaceType = REFRACTIVE;
+		// 	enteringRefractive = !enteringRefractive;
+		// }
 		// float dFractal = deFractal( ( rotate3D( PI / 2.0f, vec3( 0.0f, 1.0f, 0.0f ) ) * p + vec3( 0.0f, 6.0f, 0.0f ) ) / scalar ) * scalar;
 		float dFractal = deFractal( p / scalar ) * scalar;
 		sceneDist = min( dFractal, sceneDist );
