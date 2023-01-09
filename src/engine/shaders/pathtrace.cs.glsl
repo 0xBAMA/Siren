@@ -116,9 +116,10 @@ mat3 rotate3D ( float angle, vec3 axis ) {
 
 #define NOHIT 0
 #define DIFFUSE 1
-#define SPECULAR 2
-#define EMISSIVE 3
-#define REFRACTIVE 4
+#define PERFECTREFLECT 2
+#define METALLIC 3
+#define EMISSIVE 4
+#define REFRACTIVE 5
 
 // eventually, probably define a list of materials, and index into that - that will allow for
 	// e.g. refractive materials of multiple different indices of refraction
@@ -248,23 +249,26 @@ float de ( vec3 p ) {
 		vec3 pCache = p;
 		pMirror( p.x, 0.0f );
 
-		// if railing bounding box is true
+		// compute bounding box for the rails on both sides, using the mirrored point
+		float dRailBounds = fBox( p - vec3( 7.0f, 1.625f, 0.0f ), vec3( 1.0f, 1.2f, 24.0f ) );
 
+		// if railing bounding box is true
+		float dRails;
+		if ( dRailBounds < 0.0f )  {
 			// railings - probably use some instancing on them, also want to use a bounding volume
-			float dRails = fCapsule( p, vec3( 7.0f, 2.4f, 24.0f ), vec3( 7.0f, 2.4f, -24.0f ), 0.3f );
+			dRails = fCapsule( p, vec3( 7.0f, 2.4f, 24.0f ), vec3( 7.0f, 2.4f, -24.0f ), 0.3f );
 			dRails = min( dRails, fCapsule( p, vec3( 7.0f, 0.6f, 24.0f ), vec3( 7.0f, 0.6f, -24.0f ), 0.1f ) );
 			dRails = min( dRails, fCapsule( p, vec3( 7.0f, 1.1f, 24.0f ), vec3( 7.0f, 1.1f, -24.0f ), 0.1f ) );
 			dRails = min( dRails, fCapsule( p, vec3( 7.0f, 1.6f, 24.0f ), vec3( 7.0f, 1.6f, -24.0f ), 0.1f ) );
 			sceneDist = min( dRails, sceneDist );
 			if ( sceneDist == dRails && dRails <= epsilon ) {
 				hitpointColor = vec3( 0.618f );
-				hitpointSurfaceType = SPECULAR;
+				hitpointSurfaceType = METALLIC;
 			}
+		} // end railing bounding box
 
-			// revert to original point value
-			p = pCache;
-
-		// end railing bounding box
+		// revert to original point value
+		p = pCache;
 
 		pMod1( p.x, 14.0f );
 		p.z += 2.0f;
@@ -274,10 +278,9 @@ float de ( vec3 p ) {
 		dArches = fOpDifferenceRound( dArches, deRoundedBox( p, vec3( 3.0f, 4.5f, 10.0f ), 3.0f ), 0.2f );
 
 		// if railing bounding box is true
-
+		if ( dRailBounds < 0.0f )  {
 			dArches = fOpDifferenceRound( dArches, dRails - 0.05f, 0.1f );
-
-		// end railing bounding box
+		} // end railing bounding box
 
 		sceneDist = min( dArches, sceneDist );
 		if ( sceneDist == dArches && dArches < epsilon ) {
@@ -322,13 +325,13 @@ float de ( vec3 p ) {
 		// }
 
 		float scalar = 3.0f;
-		float dFractal = deFractal( ( rotate3D( 0.9f, vec3( 0.0f, 0.0f, 1.0f ) ) * rotate3D( 1.0f, vec3( 1.0f, 0.0f, 0.0f ) ) * p + vec3( 0.0f, 6.0f, 0.0f ) ) / scalar ) * scalar;
+		float dFractal = deFractal( ( ( rotate3D( 0.9f, vec3( 0.0f, 0.0f, 1.0f ) ) * rotate3D( 1.0f, vec3( 1.0f, 0.0f, 0.0f ) ) * p ) + vec3( -4.0f, 6.0f, 0.0f ) ) / scalar ) * scalar;
 		// float dFractal = deFractal( ( rotate3D( PI / 2.0f, vec3( 0.0f, 1.0f, 0.0f ) ) * p + vec3( 0.0f, 6.0f, 0.0f ) ) / scalar ) * scalar;
 		// float dFractal = deFractal( p / scalar ) * scalar;
 		sceneDist = min( dFractal, sceneDist );
 		if ( sceneDist == dFractal && dFractal <= epsilon ) {
 			hitpointColor = metallicDiffuse;
-			hitpointSurfaceType = SPECULAR;
+			hitpointSurfaceType = METALLIC;
 		}
 
 	// end if for first room bounds
@@ -492,7 +495,7 @@ vec3 colorSample ( vec3 rayOrigin_in, vec3 rayDirection_in ) {
 				throughput *= hitpointColor_cache; // attenuate throughput by surface albedo
 				break;
 
-			case SPECULAR:
+			case METALLIC:
 				rayDirection = mix( randomVectorDiffuse, randomVectorSpecular, 0.7f );
 				throughput *= hitpointColor_cache;
 				break;
