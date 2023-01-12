@@ -180,7 +180,7 @@ vec3 hitpointColor = vec3( 0.0f );
 int hitpointSurfaceType = NOHIT; // identifier for the hit surface
 float deLens ( vec3 p ) {
 	// lens SDF
-	p /= lensScaleFactor;
+	p *= lensScaleFactor;
 	float dFinal;
 	float center1 = lensRadius1 - lensThickness / 2.0f;
 	float center2 = -lensRadius2 + lensThickness / 2.0f;
@@ -188,7 +188,7 @@ float deLens ( vec3 p ) {
 	float sphere1 = distance( pRot, vec3( 0.0f, center1, 0.0f ) ) - lensRadius1;
 	float sphere2 = distance( pRot, vec3( 0.0f, center2, 0.0f ) ) - lensRadius2;
 	dFinal = fOpIntersectionRound( sphere1, sphere2, 0.03f );
-	return dFinal * lensScaleFactor;
+	return dFinal / lensScaleFactor;
 }
 
 float deRoundedBox ( vec3 p, vec3 boxDims, float radius ){
@@ -316,23 +316,21 @@ float de ( vec3 p ) {
 			hitpointSurfaceType = EMISSIVE;
 		}
 
-		// float dLens = ( enteringRefractive ? -1.0f : 1.0f ) * deLens( p );
-		// sceneDist = min( dLens, sceneDist );
-		// if ( sceneDist == dLens && dLens <= epsilon ) {
-		// 	hitpointColor = vec3( 0.11f );
-		// 	hitpointSurfaceType = REFRACTIVE;
-		// 	enteringRefractive = !enteringRefractive;
-		// }
-
-		float scalar = 3.0f;
-		float dFractal = deFractal( ( ( rotate3D( 0.9f, vec3( 0.0f, 0.0f, 1.0f ) ) * rotate3D( 1.0f, vec3( 1.0f, 0.0f, 0.0f ) ) * p ) + vec3( -4.0f, 6.0f, 0.0f ) ) / scalar ) * scalar;
-		// float dFractal = deFractal( ( rotate3D( PI / 2.0f, vec3( 0.0f, 1.0f, 0.0f ) ) * p + vec3( 0.0f, 6.0f, 0.0f ) ) / scalar ) * scalar;
-		// float dFractal = deFractal( p / scalar ) * scalar;
-		sceneDist = min( dFractal, sceneDist );
-		if ( sceneDist == dFractal && dFractal <= epsilon ) {
-			hitpointColor = metallicDiffuse;
-			hitpointSurfaceType = METALLIC;
+		float dLens = ( enteringRefractive ? -1.0f : 1.0f ) * deLens( p );
+		sceneDist = min( dLens, sceneDist );
+		if ( sceneDist == dLens && dLens <= epsilon ) {
+			hitpointColor = vec3( 0.11f );
+			hitpointSurfaceType = REFRACTIVE;
+			enteringRefractive = !enteringRefractive;
 		}
+
+		// float scalar = 0.6f;
+		// float dFractal = deFractal( p / scalar ) * scalar;
+		// sceneDist = min( dFractal, sceneDist );
+		// if ( sceneDist == dFractal && dFractal <= epsilon ) {
+		// 	hitpointColor = metallicDiffuse;
+		// 	hitpointSurfaceType = METALLIC;
+		// }
 
 	// end if for first room bounds
 
@@ -357,12 +355,12 @@ vec3 normal ( vec3 p ) {
 	vec2 e;
 	switch( normalMethod ) {
 		case 0: // tetrahedron version, unknown original source - 4 DE evaluations
-			e = vec2( 1.0f, -1.0f ) * epsilon / 10.0f;
+			e = vec2( 1.0f, -1.0f ) * epsilon;
 			return normalize( e.xyy * de( p + e.xyy ) + e.yyx * de( p + e.yyx ) + e.yxy * de( p + e.yxy ) + e.xxx * de( p + e.xxx ) );
 			break;
 
 		case 1: // from iq = more efficient, 4 DE evaluations
-			e = vec2( epsilon, 0.0f ) / 10.0f;
+			e = vec2( epsilon, 0.0f );
 			return normalize( vec3( de( p ) ) - vec3( de( p - e.xyy ), de( p - e.yxy ), de( p - e.yyx ) ) );
 			break;
 
@@ -381,12 +379,12 @@ vec3 lensNormal ( vec3 p ) {
 	vec2 e;
 	switch( normalMethod ) {
 		case 0: // tetrahedron version, unknown original source - 4 DE evaluations
-			e = vec2( 1.0f, -1.0f ) * epsilon / 10.0f;
+			e = vec2( 1.0f, -1.0f ) * epsilon;
 			return normalize( e.xyy * deLens( p + e.xyy ) + e.yyx * deLens( p + e.yyx ) + e.yxy * deLens( p + e.yxy ) + e.xxx * deLens( p + e.xxx ) );
 			break;
 
 		case 1: // from iq = more efficient, 4 DE evaluations
-			e = vec2( epsilon, 0.0f ) / 10.0f;
+			e = vec2( epsilon, 0.0f );
 			return normalize( vec3( deLens( p ) ) - vec3( deLens( p - e.xyy ), deLens( p - e.yxy ), deLens( p - e.yyx ) ) );
 			break;
 
