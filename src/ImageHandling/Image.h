@@ -18,6 +18,9 @@
 // https://github.com/nothings/stb/blob/master/stb_image_resize.h
 #include "../ImageHandling/stb/stb_image_resize.h"
 
+// TinyEXR is for loading and saving of high bit depth images - 16, 32 bits
+#include "../ImageHandling/tinyEXR/tinyexr.h"
+
 #include <vector>
 #include <random>
 #include <string>
@@ -507,6 +510,99 @@ public:
 		for ( int i = 0; i < numElements; i++ ) {
 			data.push_back( contents[ i ] );
 		}
+	}
+
+	void loadEXR ( const char* filename ) {
+		float* out; // width * height * RGBA
+		const char* errorCode = NULL;
+		int widthVal, heightVal;
+
+		int ret = LoadEXR( &out, &widthVal, &heightVal, filename, &errorCode );
+
+		if ( ret != TINYEXR_SUCCESS ) {
+			if ( errorCode ) {
+				fprintf( stderr, "ERR : %s\n", errorCode );
+				FreeEXRErrorMessage( errorCode ); // release memory of error message.
+			}
+		} else {
+			width = widthVal;
+			height = heightVal;
+
+			// copy to the image data
+			data.resize( width * height * 4 );
+			for ( size_t i = 0; i < width * height; i++ ) {
+				size_t idx = 4 * i;
+				data[ idx + 0 ] = out[ idx + 0 ];
+				data[ idx + 1 ] = out[ idx + 1 ];
+				data[ idx + 2 ] = out[ idx + 2 ];
+				data[ idx + 3 ] = out[ idx + 3 ];
+			}
+
+			free( out ); // release memory of image data
+		}
+	}
+
+	void saveEXR ( const char* outfilename ) {
+		EXRHeader header;
+		InitEXRHeader( &header );
+
+		EXRImage image;
+		InitEXRImage( &image );
+
+		image.num_channels = 4;
+
+		std::vector<float> images[ 4 ];
+		images[ 0 ].resize( width * height );
+		images[ 1 ].resize( width * height );
+		images[ 2 ].resize( width * height );
+		images[ 3 ].resize( width * height );
+
+		// Split RGBARGBARGBA... into R, G, B, A layers
+		for ( size_t i = 0; i < width * height; i++ ) {
+			images[ 0 ][ i ] = data[ 4 * i + 0 ];
+			images[ 1 ][ i ] = data[ 4 * i + 1 ];
+			images[ 2 ][ i ] = data[ 4 * i + 2 ];
+			images[ 3 ][ i ] = data[ 4 * i + 3 ];
+		}
+
+		float* image_ptr[ 4 ];
+		image_ptr[ 0 ] = &( images[ 3 ].at( 0 ) ); // A
+		image_ptr[ 1 ] = &( images[ 2 ].at( 0 ) ); // B
+		image_ptr[ 2 ] = &( images[ 1 ].at( 0 ) ); // G
+		image_ptr[ 3 ] = &( images[ 0 ].at( 0 ) ); // R
+
+		image.images = ( unsigned char** ) image_ptr;
+		image.width = width;
+		image.height = height;
+
+		header.num_channels = 4;
+		header.channels = ( EXRChannelInfo * ) malloc( sizeof( EXRChannelInfo ) * header.num_channels );
+		// Must be (A)BGR order, since most of EXR viewers expect this channel order.
+		strncpy( header.channels[ 0 ].name, "A", 255 ); header.channels[ 0 ].name[ strlen( "A" ) ] = '\0';
+		strncpy( header.channels[ 1 ].name, "B", 255 ); header.channels[ 1 ].name[ strlen( "B" ) ] = '\0';
+		strncpy( header.channels[ 2 ].name, "G", 255 ); header.channels[ 2 ].name[ strlen( "G" ) ] = '\0';
+		strncpy( header.channels[ 3 ].name, "R", 255 ); header.channels[ 3 ].name[ strlen( "R" ) ] = '\0';
+
+		header.pixel_types = ( int * ) malloc( sizeof( int ) * header.num_channels );
+		header.requested_pixel_types = ( int * ) malloc( sizeof( int ) * header.num_channels );
+		for ( int i = 0; i < header.num_channels; i++ ) {
+			header.pixel_types[ i ] = TINYEXR_PIXELTYPE_FLOAT; // pixel type of input image
+			// header.requested_pixel_types[ i ] = TINYEXR_PIXELTYPE_HALF; // pixel type of output image to be stored in .EXR
+			header.requested_pixel_types[ i ] = TINYEXR_PIXELTYPE_FLOAT;
+		}
+
+		const char* err = NULL; // or nullptr in C++11 or later.
+		int ret = SaveEXRImageToFile( &image, &header, outfilename, &err );
+		if ( ret != TINYEXR_SUCCESS ) {
+			fprintf( stderr, "Save EXR err: %s\n", err );
+			FreeEXRErrorMessage( err ); // free's buffer for an error message
+			// return ret;
+		}
+
+		// free( rgb );
+		free( header.channels );
+		free( header.pixel_types );
+		free( header.requested_pixel_types );
 	}
 
 	// will need a save function, to save higher bitrate, maybe 16 bit png? LodePNG will do it

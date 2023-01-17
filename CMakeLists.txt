@@ -73,6 +73,8 @@ target_compile_options( BigInt PUBLIC -Wno-deprecated )
 
 add_library( tinyXML2 src/Serialization/tinyXML2/tinyxml2.cc )
 
+add_library( tinyEXR src/ImageHandling/tinyEXR/tinyexr.cc src/ImageHandling/tinyEXR/miniz/miniz.c )
+
 add_library( STB_ImageUtilsWrapper src/ImageHandling/stb/impl.cc )
 
 add_library( TinyOBJLoader src/ModelLoading/TinyOBJLoader/tiny_obj_loader.cc )
@@ -96,6 +98,7 @@ target_link_libraries( exe
 	PUBLIC
 	imgui
 	BigInt
+	tinyEXR
 	tinyXML2
 	opengl
 	sdl2
