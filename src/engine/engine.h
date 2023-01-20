@@ -82,6 +82,7 @@ private:
 
 	// screenshot functions
 	void BasicScreenShot();		// pull render target from texture memory
+	void EXRScreenshot();		// pull accumulator data directly and save 32-bit float RGBA EXR
 
 	// large screenshot
 	// void offlineScreenShot();	// render out with prescribed sample count + resolution

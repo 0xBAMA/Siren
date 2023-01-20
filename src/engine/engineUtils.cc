@@ -275,6 +275,10 @@ void engine::ImguiPass () {
 				BasicScreenShot();
 			}
 
+			if ( ImGui::SmallButton( "Accumulator Screenshot ( EXR )" ) ) {
+				EXRScreenshot();
+			}
+
 			// what else?
 			// buttons, controls for the renderer state
 				// trigger random tile glitch behaviors
@@ -557,7 +561,7 @@ void engine::BasicScreenShot () {
 	std::vector< GLfloat > imageAsFloats;
 	imageAsFloats.resize( config.width * config.height * 4, 0 );
 
-	// belt and suspenders, what's 100ms between friends?
+	// belt and suspenders, what's 60-100ms between friends?
 	SDL_Delay( 30 );
 	glMemoryBarrier( GL_ALL_BARRIER_BITS );
 	SDL_Delay( 30 );
@@ -594,4 +598,20 @@ void engine::BasicScreenShot () {
 	if ( ( error = lodepng::encode( filename.c_str(), outputBytes, config.width, config.height ) ) ) {
 		std::cout << "encode error during save( \"" + filename + "\" ) " << error << ": " << lodepng_error_text( error ) << std::endl;
 	}
+}
+
+void engine::EXRScreenshot () {
+	ZoneScoped;
+
+	std::vector< GLfloat > imageAsFloats;
+	imageAsFloats.resize( config.width * config.height * 4, 0 );
+
+	glBindTexture( GL_TEXTURE_2D, colorAccumulatorTexture );
+	glGetTexImage( GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, &imageAsFloats[ 0 ] );
+
+	ImageF ssImage( config.width, config.height );
+
+	std::copy( imageAsFloats.begin(), imageAsFloats.end(), ssImage.data.begin() );
+
+	ssImage.saveEXR( "test.exr" );
 }
