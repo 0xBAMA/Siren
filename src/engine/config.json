@@ -2,8 +2,8 @@
 	"windowTitle":"NQADE",
 	"MSAACount":8,
 	"startOnScreen":1,
-	"screenWidth":1920,
-	"screenHeight":1080,
+	"screenWidth":512,
+	"screenHeight":512,
 	"windowOffset":{
 		"x":0,
 		"y":0

@@ -148,6 +148,7 @@ void engine::PathtraceUniformUpdate() {
 	glUniform1f( glGetUniformLocation( pathtraceShader, "lensThickness" ), lens.lensThickness );
 	glUniform1f( glGetUniformLocation( pathtraceShader, "lensRotate" ), lens.lensRotate );
 	glUniform1f( glGetUniformLocation( pathtraceShader, "lensIoR" ), lens.lensIoR );
+	glUniform1i( glGetUniformLocation( pathtraceShader, "showLens" ), lens.showLens );
 
 	// scene
 	glUniform3f( glGetUniformLocation( pathtraceShader, "redWallColor" ), scene.redWallColor.x, scene.redWallColor.y, scene.redWallColor.z );
@@ -250,7 +251,8 @@ void engine::ImguiPass () {
 			// ImGui::SliderInt( "Screenshot Samples", &host.numSamplesScreenshot, 1, 512 );
 			ImGui::Separator();
 			ImGui::SliderInt( "Tile Per Frame Cap", &host.tilePerFrameCap, 1, 3000 );
-			// todo: tilesize, in powers of two
+
+			// todo: tilesize adjustment, in powers of two
 
 			static int pickt = 1;
 			ImGui::RadioButton( "Preview Color", &pickt, 1 ); UPDATECHECK;
@@ -275,17 +277,16 @@ void engine::ImguiPass () {
 				BasicScreenShot();
 			}
 
-			if ( ImGui::SmallButton( "Accumulator Screenshot ( EXR )" ) ) {
+			if ( ImGui::SmallButton( "Accumulator Screenshot ( 32-bit per channel EXR )" ) ) {
 				EXRScreenshot();
 			}
-
-			// what else?
-			// buttons, controls for the renderer state
-				// trigger random tile glitch behaviors
+			ImGui::SameLine();
+			HelpMarker( "This takes the full depth of accumulated data and saves it to disk. This process exchanges size on disk for a massive increase in the fidelity of the stored data, as it does not have to be mapped to LDR before output. Instead of being encoded down to a representation where there are only 255 levels for each channel in the image, we are looking at a situation where we keep a full 32 bits of precision for red, green, and blue. Note that this will skip postprocessing steps, such as gamma, tonemapping, dithering, etc." );
 
 			if ( ImGui::SmallButton( "Reset Buffer Samples" ) ) {
 				ResetAccumulators(); // also triggered by 'r'
 			}
+
 
 			ImGui::EndTabItem();
 		}
@@ -312,9 +313,15 @@ void engine::ImguiPass () {
 			ImGui::Text( " Y: %.3f %.3f %.3f", core.basisY.x, core.basisY.y, core.basisY.z );
 			ImGui::Text( " Z: %.3f %.3f %.3f", core.basisZ.x, core.basisZ.y, core.basisZ.z );
 			ImGui::EndTabItem();
+
+			// what else?
+			// buttons, controls for the renderer state
+				// trigger random tile glitch behaviors
+
 		}
 		if ( ImGui::BeginTabItem( " Lens / Model " ) ) {
 			// lens geometry parameters
+			ImGui::Checkbox( "Show Lens", &lens.showLens );
 			ImGui::SliderFloat( "Lens Scale Factor", &lens.lensScaleFactor, 0.001f, 2.5f ); UPDATECHECK;
 			ImGui::SliderFloat( "Lens Radius 1", &lens.lensRadius1, 0.01f, 10.0f ); UPDATECHECK;
 			ImGui::SliderFloat( "Lens Radius 2", &lens.lensRadius2, 0.01f, 10.0f ); UPDATECHECK;
@@ -522,6 +529,7 @@ void engine::HandleEvents () {
 		pQuit = ( event.type == SDL_QUIT ) ||
 				( event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID( window ) ) ||
 				( event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_ESCAPE && SDL_GetModState() & KMOD_SHIFT );
+
 		// this has to stay because it doesn't seem like ImGui::IsKeyReleased is stable enough to use
 		if ( ( event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_ESCAPE ) || ( event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_X1 )  )
 			quitConfirm = !quitConfirm;
@@ -608,10 +616,12 @@ void engine::EXRScreenshot () {
 
 	glBindTexture( GL_TEXTURE_2D, colorAccumulatorTexture );
 	glGetTexImage( GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, &imageAsFloats[ 0 ] );
+	glBindTexture( GL_TEXTURE_2D, displayTexture ); // restore state
 
 	ImageF ssImage( config.width, config.height );
 
 	std::copy( imageAsFloats.begin(), imageAsFloats.end(), ssImage.data.begin() );
+	ssImage.FlipVertical(); // correction for how it comes out of the buffer
 
 	ssImage.saveEXR( "test.exr" );
 }

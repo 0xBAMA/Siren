@@ -43,6 +43,7 @@ uniform float lensRadius2;			// radius of the sphere for the second side
 uniform float lensThickness;		// offset between the two spheres
 uniform float lensRotate;			// rotating the displacement offset betwee spheres
 uniform float lensIoR;				// index of refraction for the lens
+uniform bool showLens;				// whether or not to show lens sdf
 
 // scene parameters
 uniform vec3 redWallColor;
@@ -316,12 +317,14 @@ float de ( vec3 p ) {
 			hitpointSurfaceType = EMISSIVE;
 		}
 
-		float dLens = ( enteringRefractive ? -1.0f : 1.0f ) * deLens( p );
-		sceneDist = min( dLens, sceneDist );
-		if ( sceneDist == dLens && dLens <= epsilon ) {
-			hitpointColor = vec3( 0.11f );
-			hitpointSurfaceType = REFRACTIVE;
-			enteringRefractive = !enteringRefractive;
+		if ( showLens ) {
+			float dLens = ( enteringRefractive ? -1.0f : 1.0f ) * deLens( p );
+			sceneDist = min( dLens, sceneDist );
+			if ( sceneDist == dLens && dLens <= epsilon ) {
+				hitpointColor = vec3( 0.11f );
+				hitpointSurfaceType = REFRACTIVE;
+				enteringRefractive = !enteringRefractive;
+			}
 		}
 
 		// float scalar = 0.6f;
