@@ -97,6 +97,8 @@ vec2 randomInUnitDisk () {
 	return randomUnitVector().xy;
 }
 
+#include "BRDFUtils.glsl" // Namless's BRDF code
+
 mat3 rotate3D ( float angle, vec3 axis ) {
 	vec3 a = normalize( axis );
 	float s = sin( angle );
@@ -121,6 +123,7 @@ mat3 rotate3D ( float angle, vec3 axis ) {
 #define METALLIC 3
 #define EMISSIVE 4
 #define REFRACTIVE 5
+#define GGX 6
 
 // eventually, probably define a list of materials, and index into that - that will allow for
 	// e.g. refractive materials of multiple different indices of refraction
@@ -327,13 +330,13 @@ float de ( vec3 p ) {
 			}
 		}
 
-		// float scalar = 0.6f;
-		// float dFractal = deFractal( p / scalar ) * scalar;
-		// sceneDist = min( dFractal, sceneDist );
-		// if ( sceneDist == dFractal && dFractal <= epsilon ) {
-		// 	hitpointColor = metallicDiffuse;
-		// 	hitpointSurfaceType = METALLIC;
-		// }
+		float scalar = 0.6f;
+		float dFractal = deFractal( p / scalar ) * scalar;
+		sceneDist = min( dFractal, sceneDist );
+		if ( sceneDist == dFractal && dFractal <= epsilon ) {
+			hitpointColor = metallicDiffuse;
+			hitpointSurfaceType = GGX;
+		}
 
 	// end if for first room bounds
 
@@ -483,6 +486,8 @@ vec3 colorSample ( vec3 rayOrigin_in, vec3 rayDirection_in ) {
 		vec3 randomVectorDiffuse = normalize( ( 1.0f + epsilon ) * hitNormal + randomUnitVector() );
 		vec3 randomVectorSpecular = normalize( ( 1.0f + epsilon ) * hitNormal + mix( reflectedVector, randomUnitVector(), 0.1f ) );
 
+
+
 		// currently just implementing diffuse and emissive behavior
 			// eventually add different ray behaviors for each material here
 		switch ( hitpointSurfaceType_cache ) {
@@ -521,17 +526,43 @@ vec3 colorSample ( vec3 rayOrigin_in, vec3 rayDirection_in ) {
 				}
 				break;
 
+			case GGX:
+				float specularProbability = 0.9f; // could set by fresnel
+				float roughnessValue = 0.01f;
+
+				rayDirection = randomVectorDiffuse;
+				if( normalizedRandomFloat() < specularProbability ){
+					rayDirection = ggx_S( reflect( previousRayDirection, hitNormal ), roughnessValue );
+				}
+
+				vec3 h = normalize( -previousRayDirection + rayDirection );
+				float D = ggx_D( max( dot( reflect( previousRayDirection, hitNormal ),rayDirection),0.), roughnessValue);
+				float G = cookTorranceG(hitNormal,h,-previousRayDirection,rayDirection);
+				vec3 F = Schlick( hitpointColor, max(dot(-previousRayDirection,hitNormal),0.));
+				vec3 specular = (D*G*F)/max(4.*max(dot(rayDirection,hitNormal),0.6)*max(dot(-previousRayDirection,hitNormal),0.),0.001);
+
+				vec3 brdf = hitpointColor / PI;
+				float pdf = 1.0f / ( 2.0f * PI );
+				brdf = mix(brdf, specular, specularProbability );
+				pdf = mix(pdf, ggx_pdf(max(dot(reflect(previousRayDirection,hitNormal), rayDirection ),0.), roughnessValue), specularProbability );
+
+				brdf *= 1.0+(2.0*specularProbability *max(dot(rayDirection,hitNormal),0.));
+				pdf = max(pdf, 0.0001);
+
+				throughput *= brdf * max(dot(rayDirection,hitNormal),0.)/pdf;
+				break;
+
 			default:
 				break;
 		}
 
-		if ( hitpointSurfaceType_cache != REFRACTIVE ) {
-			// russian roulette termination - chance for ray to quit early
-			float maxChannel = max( throughput.r, max( throughput.g, throughput.b ) );
-			if ( normalizedRandomFloat() > maxChannel ) { break; }
-			// russian roulette compensation term
-			throughput *= 1.0f / maxChannel;
-		}
+		// if ( hitpointSurfaceType_cache != REFRACTIVE ) {
+		// 	// russian roulette termination - chance for ray to quit early
+		// 	float maxChannel = max( throughput.r, max( throughput.g, throughput.b ) );
+		// 	if ( normalizedRandomFloat() > maxChannel ) { break; }
+		// 	// russian roulette compensation term
+		// 	throughput *= 1.0f / maxChannel;
+		// }
 	}
 	return finalColor;
 }
